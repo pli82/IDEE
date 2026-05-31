@@ -1,0 +1,9 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="16" fill="#1A5FA8"/>
+  <text x="60" y="52" font-family="Arial, sans-serif" font-size="28" font-weight="bold"
+        fill="white" text-anchor="middle" dominant-baseline="middle">AEP</text>
+  <text x="60" y="80" font-family="Arial, sans-serif" font-size="9" fill="#93C5FD"
+        text-anchor="middle">Autoritatea Electorală</text>
+  <text x="60" y="93" font-family="Arial, sans-serif" font-size="9" fill="#93C5FD"
+        text-anchor="middle">Permanentă</text>
+</svg>
