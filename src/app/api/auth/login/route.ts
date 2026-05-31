@@ -44,13 +44,6 @@ export async function POST(req: NextRequest) {
     const token = await createSession(session)
     setSessionCookie(token)
 
-    await createAuditLog({
-      actorId: user.id,
-      action: 'LOGIN',
-      entityType: 'User',
-      entityId: user.id,
-    })
-
     const isAdmin = user.roles.some(r =>
       ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r.role)
     )
