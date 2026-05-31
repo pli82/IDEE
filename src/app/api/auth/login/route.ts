@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyPassword, createSession, setSessionCookie, createAuditLog } from '@/lib/auth'
+import { verifyPassword, createSession, setSessionCookie } from '@/lib/auth'
 import { LoginSchema } from '@/lib/validations'
 import { ok, badRequest, serverError } from '@/lib/api'
 
