@@ -41,14 +41,6 @@ export default async function HomePage() {
               </h1>
             </div>
           </div>
-          <nav className="hidden md:flex items-center gap-2">
-            <Link href="/auth/login" className="btn-secondary btn-sm text-aep-600 bg-white border-white hover:bg-blue-50">
-              Autentificare
-            </Link>
-            <Link href="/auth/register" className="btn-sm bg-success-500 text-white hover:bg-success-600 rounded-md px-4 py-2 text-sm font-medium transition-colors">
-              Înregistrare cont
-            </Link>
-          </nav>
         </div>
       </header>
 
