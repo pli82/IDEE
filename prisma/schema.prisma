@@ -1,0 +1,418 @@
+// AEP Instruire Online - Prisma Schema
+// PostgreSQL principal, SQLite pentru demo
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = env("DATABASE_PROVIDER") // "postgresql" sau "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTENTIFICARE & UTILIZATORI ───────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  phone           String?
+  status          UserStatus @default(PENDING)
+  emailVerified   Boolean   @default(false)
+  phoneVerified   Boolean   @default(false)
+  failedLoginAttempts Int   @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+
+  profile         UserProfile?
+  roles           UserRole[]
+  otpTokens       OtpToken[]
+  passwordResets  PasswordReset[]
+  testAttempts    TestAttempt[]
+  progress        Progress[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]      @relation("AuditActor")
+  uploadedFiles   UploadedFile[]
+
+  @@map("users")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model UserProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  nume            String?
+  prenume         String?
+  dataNasterii    DateTime?
+  sex             Sex?
+  adresa          String?
+  judetCode       String?
+  county          County?   @relation(fields: [judetCode], references: [code])
+  
+  serieCI         String?
+  numarCI         String?
+  dataExpirareCI  DateTime?
+  
+  studii          String?
+  calitate        String?
+  
+  profileComplete Boolean   @default(false)
+  gdprConsentAt   DateTime?
+  gdprPolicyVersion String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("user_profiles")
+}
+
+enum Sex {
+  M
+  F
+}
+
+model UserRole {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CONTENT_ADMIN
+  REPORTING_ADMIN
+  USER
+}
+
+model OtpToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String    // hash-uit
+  type        OtpType
+  expiresAt   DateTime
+  usedAt      DateTime?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@map("otp_tokens")
+}
+
+enum OtpType {
+  EMAIL_VERIFY
+  PHONE_VERIFY
+  PASSWORD_RESET
+}
+
+model PasswordReset {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("password_resets")
+}
+
+// ─── JUDEȚE ─────────────────────────────────────────────────────────────────
+
+model County {
+  code        String   @id // AB, AR, AG, ...
+  name        String
+  active      Boolean  @default(true)
+
+  profiles    UserProfile[]
+  events      Event[]
+
+  @@map("counties")
+}
+
+// ─── CONȚINUT ────────────────────────────────────────────────────────────────
+
+model ContentCategory {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?
+  parentId    String?
+  parent      ContentCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ContentCategory[] @relation("CategoryHierarchy")
+  order       Int       @default(0)
+  published   Boolean   @default(false)
+  
+  modules     Module[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("content_categories")
+}
+
+model Module {
+  id          String    @id @default(cuid())
+  categoryId  String
+  category    ContentCategory @relation(fields: [categoryId], references: [id])
+  title       String
+  description String?
+  order       Int       @default(0)
+  published   Boolean   @default(false)
+  
+  lessons     Lesson[]
+  tests       Test[]    @relation("ModuleTests")
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("modules")
+}
+
+model Lesson {
+  id                      String    @id @default(cuid())
+  moduleId                String
+  module                  Module    @relation(fields: [moduleId], references: [id])
+  title                   String
+  description             String?
+  videoFileId             String?
+  videoUrl                String?   // URL extern opțional
+  videoFile               UploadedFile? @relation("LessonVideo", fields: [videoFileId], references: [id])
+  pdfFileId               String?
+  pdfFile                 UploadedFile? @relation("LessonPDF", fields: [pdfFileId], references: [id])
+  order                   Int       @default(0)
+  published               Boolean   @default(false)
+  minWatchPercentForTest  Int       @default(0) // 0 = fără restricție
+  
+  progress    Progress[]
+  tests       Test[]     @relation("LessonTests")
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("lessons")
+}
+
+model Progress {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId            String
+  lesson              Lesson    @relation(fields: [lessonId], references: [id])
+  watchedPercent      Float     @default(0)
+  lastPositionSeconds Float     @default(0)
+  status              ProgressStatus @default(NOT_STARTED)
+  completedAt         DateTime?
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+  @@map("progress")
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// ─── TESTE ───────────────────────────────────────────────────────────────────
+
+model Test {
+  id                  String    @id @default(cuid())
+  moduleId            String?
+  module              Module?   @relation("ModuleTests", fields: [moduleId], references: [id])
+  lessonId            String?
+  lesson              Lesson?   @relation("LessonTests", fields: [lessonId], references: [id])
+  title               String
+  description         String?
+  questionsPerAttempt Int       @default(10)
+  passingScore        Int       @default(7)
+  published           Boolean   @default(false)
+  
+  questions           Question[]
+  attempts            TestAttempt[]
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("tests")
+}
+
+model Question {
+  id          String    @id @default(cuid())
+  testId      String
+  test        Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  text        String
+  type        QuestionType @default(SINGLE)
+  explanation String?
+  active      Boolean   @default(true)
+  order       Int       @default(0)
+  
+  options     QuestionOption[]
+  answers     AttemptAnswer[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+}
+
+model QuestionOption {
+  id          String    @id @default(cuid())
+  questionId  String
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text        String
+  isCorrect   Boolean   @default(false)
+  order       Int       @default(0)
+
+  answers     AttemptAnswer[]
+
+  @@map("question_options")
+}
+
+model TestAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  testId      String
+  test        Test      @relation(fields: [testId], references: [id])
+  score       Int       @default(0)
+  maxScore    Int       @default(10)
+  passed      Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  
+  answers     AttemptAnswer[]
+
+  @@map("test_attempts")
+}
+
+model AttemptAnswer {
+  id               String    @id @default(cuid())
+  attemptId        String
+  attempt          TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question  @relation(fields: [questionId], references: [id])
+  selectedOptionId String?
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+  isCorrect        Boolean   @default(false)
+  points           Int       @default(0)
+
+  @@map("attempt_answers")
+}
+
+// ─── CALENDAR EVENIMENTE ──────────────────────────────────────────────────────
+
+model Event {
+  id            String    @id @default(cuid())
+  countyCode    String?
+  county        County?   @relation(fields: [countyCode], references: [code])
+  title         String
+  description   String?
+  startAt       DateTime
+  endAt         DateTime
+  location      String?
+  onlineLink    String?
+  targetAudience String?
+  maxParticipants Int?
+  published     Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("events")
+}
+
+// ─── NOTIFICĂRI ───────────────────────────────────────────────────────────────
+
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetSegment String?   // all, county:AB, role:USER etc.
+  title         String
+  body          String
+  type          NotificationType @default(INFO)
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+// ─── FIȘIERE ──────────────────────────────────────────────────────────────────
+
+model UploadedFile {
+  id            String    @id @default(cuid())
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  storagePath   String
+  storageType   StorageType @default(LOCAL)
+  uploadedById  String
+  uploadedBy    User      @relation(fields: [uploadedById], references: [id])
+  createdAt     DateTime  @default(now())
+
+  lessonVideos  Lesson[]  @relation("LessonVideo")
+  lessonPDFs    Lesson[]  @relation("LessonPDF")
+
+  @@map("uploaded_files")
+}
+
+enum StorageType {
+  LOCAL
+  S3
+  MINIO
+}
+
+// ─── SETĂRI APLICAȚIE ─────────────────────────────────────────────────────────
+
+model AppSetting {
+  key       String  @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  actorId     String?
+  actor       User?     @relation("AuditActor", fields: [actorId], references: [id])
+  action      String
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@map("audit_logs")
+}
