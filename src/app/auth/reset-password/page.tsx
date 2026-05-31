@@ -1,10 +1,9 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function ResetPasswordPage() {
+function ResetForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') || ''
@@ -46,14 +45,13 @@ export default function ResetPasswordPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Parolă nouă</h2>
           {done ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm">
-              ✓ Parola a fost schimbată. Vei fi redirecționat la autentificare...
+              ✓ Parola a fost schimbată. Vei fi redirecționat...
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">Parolă nouă *</label>
                 <input type="password" required className="input"
-                  placeholder="Min. 8 caractere, literă mare, cifră, special"
                   value={password} onChange={e => setPassword(e.target.value)} />
               </div>
               <div>
@@ -70,5 +68,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-aep-700 to-aep-900"><div className="text-white">Se încarcă...</div></div>}>
+      <ResetForm />
+    </Suspense>
   )
 }
