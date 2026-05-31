@@ -1,10 +1,9 @@
 'use client'
-export const dynamic = 'force-dynamic'
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -37,24 +36,19 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-white">Instruire Online</h1>
           <p className="text-blue-200 text-sm mt-1">Autoritatea Electorală Permanentă</p>
         </div>
-
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Autentificare</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Email *</label>
-              <input type="email" required autoComplete="email"
-                className="input"
-                placeholder="adresa@email.ro"
-                value={form.email}
+              <input type="email" required autoComplete="email" className="input"
+                placeholder="adresa@email.ro" value={form.email}
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
             </div>
             <div>
               <label className="label">Parolă *</label>
-              <input type="password" required autoComplete="current-password"
-                className="input"
-                placeholder="Parola dvs."
-                value={form.password}
+              <input type="password" required autoComplete="current-password" className="input"
+                placeholder="Parola dvs." value={form.password}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
             </div>
             {error && (
@@ -67,19 +61,22 @@ export default function LoginPage() {
             </button>
           </form>
           <div className="mt-6 space-y-3 text-center text-sm">
-            <p>
-              <Link href="/auth/forgot-password" className="text-aep-600 hover:underline">Ai uitat parola?</Link>
-            </p>
-            <p className="text-gray-500">
-              Nu ai cont?{' '}
+            <p><Link href="/auth/forgot-password" className="text-aep-600 hover:underline">Ai uitat parola?</Link></p>
+            <p className="text-gray-500">Nu ai cont?{' '}
               <Link href="/auth/register" className="text-aep-600 font-medium hover:underline">Înregistrare cont nou</Link>
             </p>
-            <p>
-              <Link href="/" className="text-gray-400 hover:text-gray-600 text-xs">← Înapoi la pagina principală</Link>
-            </p>
+            <p><Link href="/" className="text-gray-400 hover:text-gray-600 text-xs">← Înapoi la pagina principală</Link></p>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-aep-700 to-aep-900"><div className="text-white">Se încarcă...</div></div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
