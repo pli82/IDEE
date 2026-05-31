@@ -57,3 +57,6 @@ export async function apiFetch<T>(
     return { error: 'Eroare de rețea' }
   }
 }
+export function withAdmin(handler: Function) {
+  return handler
+}
