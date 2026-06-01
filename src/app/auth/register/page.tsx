@@ -78,8 +78,8 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="label">Telefon</label>
-                  <input type="tel" className="input" placeholder="07xx xxx xxx"
-                    value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+<input type="tel" required className="input" placeholder="07xx xxx xxx"
+  value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
                 </div>
                 <div>
                   <label className="label">Parolă *</label>
