@@ -1,10 +1,12 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyPassword, createSession, setSessionCookie } from '@/lib/auth'
+import { verifyPassword, createSession } from '@/lib/auth'
 import { LoginSchema } from '@/lib/validations'
-import { ok, badRequest, serverError } from '@/lib/api'
+import { badRequest, serverError } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
+
+const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE || '86400', 10)
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +20,6 @@ export async function POST(req: NextRequest) {
       where: { email },
       include: { roles: true, profile: true },
     })
-
     if (!user) return badRequest('Email sau parolă incorectă')
 
     const passwordOk = await verifyPassword(password, user.passwordHash)
@@ -42,17 +43,26 @@ export async function POST(req: NextRequest) {
     }
 
     const token = await createSession(session)
-    setSessionCookie(token)
 
     const isAdmin = user.roles.some(r =>
       ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r.role)
     )
 
-    return ok({
-      redirectTo: user.profile?.profileComplete
-        ? isAdmin ? '/admin' : '/dashboard'
-        : '/profile/complete',
+    const redirectTo = user.profile?.profileComplete
+      ? isAdmin ? '/admin' : '/dashboard'
+      : '/profile/complete'
+
+    const response = NextResponse.json({ data: { redirectTo } }, { status: 200 })
+
+    response.cookies.set('aep_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
     })
+
+    return response
   } catch (err) {
     console.error('Login error:', err)
     return serverError()
