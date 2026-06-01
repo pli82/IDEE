@@ -13,7 +13,8 @@ const CALITATE_OPTIONS = [
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', phone: '', calitate: '' })
+ const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', phone: '', calitate: '' })
+const [showPassword, setShowPassword] = useState(false)
   const [step, setStep] = useState<'form' | 'otp'>('form')
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
@@ -83,14 +84,26 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="label">Parolă *</label>
-                  <input type="password" required className="input" placeholder="Min. 8 caractere, literă mare, cifră, special"
-                    value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+<div className="relative">
+  <input type={showPassword ? 'text' : 'password'} required className="input pr-10" placeholder="Min. 8 caractere, literă mare, cifră, special"
+    value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+  <button type="button" onClick={() => setShowPassword(s => !s)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+    {showPassword ? '🙈' : '👁️'}
+  </button>
+</div>
                 </div>
-                <div>
-                  <label className="label">Confirmă parola *</label>
-                  <input type="password" required className="input"
-                    value={form.confirmPassword} onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))} />
-                </div>
+<div>
+  <label className="label">Confirmă parola *</label>
+  <div className="relative">
+    <input type={showPassword ? 'text' : 'password'} required className="input pr-10"
+      value={form.confirmPassword} onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))} />
+    <button type="button" onClick={() => setShowPassword(s => !s)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+      {showPassword ? '🙈' : '👁️'}
+    </button>
+  </div>
+</div>
                 <div>
   <label className="label">Calitate *</label>
   <select required className="input"
