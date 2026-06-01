@@ -21,6 +21,39 @@ interface Module {
   stats: { total: number; completed: number; percent: number }
 }
 
+function StatusCircle({ status, watchedPercent, index }: { status: string; watchedPercent: number; index: number }) {
+  if (status === 'COMPLETED') {
+    return (
+      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+    )
+  }
+  if (status === 'IN_PROGRESS') {
+    const radius = 12
+    const circumference = 2 * Math.PI * radius
+    const offset = circumference - (watchedPercent / 100) * circumference
+    return (
+      <div className="w-8 h-8 shrink-0 relative flex items-center justify-center">
+        <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="3" />
+          <circle cx="16" cy="16" r={radius} fill="none" stroke="#3b82f6" strokeWidth="3"
+            strokeDasharray={circumference} strokeDashoffset={offset}
+            strokeLinecap="round" />
+        </svg>
+        <span className="absolute text-[9px] font-bold text-blue-600">{Math.round(watchedPercent)}%</span>
+      </div>
+    )
+  }
+  return (
+    <div className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0 bg-white">
+      <span className="text-xs font-medium text-gray-400">{index + 1}</span>
+    </div>
+  )
+}
+
 export default function CategoryPage() {
   const params = useParams()
   const categorySlug = params.categorySlug as string
@@ -62,6 +95,7 @@ export default function CategoryPage() {
         <div className="space-y-4">
           {modules.map(mod => (
             <div key={mod.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Header modul */}
               <div className="p-5 border-b border-gray-100">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -69,56 +103,77 @@ export default function CategoryPage() {
                     {mod.description && <p className="text-sm text-gray-500 mt-1">{mod.description}</p>}
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-sm font-medium text-aep-700">{mod.stats.percent}%</div>
+                    <div className={`text-sm font-bold ${mod.stats.percent === 100 ? 'text-green-600' : 'text-aep-700'}`}>
+                      {mod.stats.percent}%
+                    </div>
                     <div className="text-xs text-gray-400">{mod.stats.completed}/{mod.stats.total} lecții</div>
                   </div>
                 </div>
                 {mod.stats.total > 0 && (
-                  <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-aep-500 rounded-full transition-all"
+                      className={`h-full rounded-full transition-all duration-500 ${mod.stats.percent === 100 ? 'bg-green-500' : 'bg-aep-500'}`}
                       style={{ width: `${mod.stats.percent}%` }}
                     />
                   </div>
                 )}
               </div>
 
+              {/* Lista lecții */}
               {mod.lessons.length > 0 && (
                 <div className="divide-y divide-gray-50">
                   {mod.lessons.map((lesson, idx) => {
                     const progress = lesson.progress[0]
-                    const isCompleted = progress?.status === 'COMPLETED'
-                    const isInProgress = progress?.status === 'IN_PROGRESS'
+                    const status = progress?.status || 'NOT_STARTED'
+                    const watchedPercent = progress?.watchedPercent || 0
+                    const isCompleted = status === 'COMPLETED'
+                    const isInProgress = status === 'IN_PROGRESS'
+
                     return (
                       <Link
                         key={lesson.id}
                         href={`/dashboard/courses/lesson/${lesson.id}`}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors group"
+                        className={`flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors group ${isCompleted ? 'bg-green-50/30' : ''}`}
                       >
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
-                          isCompleted ? 'bg-green-100 text-green-700' :
-                          isInProgress ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-500'
-                        }`}>
-                          {isCompleted ? '✓' : idx + 1}
-                        </div>
+                        <StatusCircle status={status} watchedPercent={watchedPercent} index={idx} />
+
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm group-hover:text-aep-700">
+                          <div className={`font-medium text-sm group-hover:text-aep-700 ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
                             {lesson.title}
                           </div>
-                          <div className="flex items-center gap-3 mt-0.5">
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
                             {lesson.videoUrl && (
-                              <span className="text-xs text-gray-400 flex items-center gap-1">🎬 Video</span>
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <span>▶</span> Video
+                              </span>
                             )}
                             {lesson.pdfUrl && (
-                              <span className="text-xs text-gray-400 flex items-center gap-1">📄 Suport curs</span>
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <span>📄</span> Suport curs
+                              </span>
                             )}
-                            {isInProgress && progress.watchedPercent > 0 && (
-                              <span className="text-xs text-blue-500">{Math.round(progress.watchedPercent)}% vizionat</span>
+                            {isCompleted && (
+                              <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                                ✓ Completat
+                              </span>
+                            )}
+                            {isInProgress && (
+                              <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                                ⏳ În curs — {Math.round(watchedPercent)}% vizionat
+                              </span>
                             )}
                           </div>
                         </div>
-                        <span className="text-gray-300 group-hover:text-aep-400">→</span>
+
+                        <div className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors ${
+                          isCompleted
+                            ? 'bg-green-100 text-green-700 group-hover:bg-green-200'
+                            : isInProgress
+                            ? 'bg-blue-100 text-blue-700 group-hover:bg-blue-200'
+                            : 'bg-aep-600 text-white group-hover:bg-aep-700'
+                        }`}>
+                          {isCompleted ? 'Revizuiește' : isInProgress ? 'Continuă' : 'Start'}
+                        </div>
                       </Link>
                     )
                   })}
