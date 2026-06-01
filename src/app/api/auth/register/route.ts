@@ -43,6 +43,8 @@ const user = await prisma.user.create({
           create: {
             calitate: calitate,
             profileComplete: false,
+            gdprConsentAt: new Date(),
+            gdprPolicyVersion: '1.0',
           },
         },
         roles: {
