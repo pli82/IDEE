@@ -52,9 +52,9 @@ export async function GET(req: NextRequest) {
       'Ultima accesare': p.updatedAt.toISOString().split('T')[0],
     }))
 
-    if (format === 'json') {
-      return Response.json({ data: rows })
-    }
+if (format === 'json') {
+  return NextResponse.json({ data: rows })
+}
 
     if (format === 'csv') {
       if (rows.length === 0) return new NextResponse('\uFEFFNu există date', { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="progres_instruire.csv"' } })
