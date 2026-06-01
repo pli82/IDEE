@@ -16,7 +16,7 @@ export const RegisterSchema = z.object({
     .regex(/[a-z]/, 'Cel puțin o literă mică')
     .regex(/[0-9]/, 'Cel puțin o cifră')
     .regex(/[^A-Za-z0-9]/, 'Cel puțin un caracter special'),
-  phone: z.string().regex(/^(\+4|0)[0-9]{9}$/, 'Număr de telefon invalid').optional(),
+ phone: z.string().regex(/^(\+4|0)[0-9]{9}$/, 'Număr de telefon invalid'),
   calitate: z.string().min(1, 'Calitatea este obligatorie'),
 })
 
