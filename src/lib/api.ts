@@ -1,70 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { verifyPassword, createSession } from '@/lib/auth'
-import { LoginSchema } from '@/lib/validations'
-import { badRequest, serverError } from '@/lib/api'
+import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
-
-const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE || '86400', 10)
-
-export async function POST(req: NextRequest) {
+export function ok<T>(data: T, status = 200) {
+  return NextResponse.json({ data }, { status })
+}
+export function created<T>(data: T) {
+  return ok(data, 201)
+}
+export function noContent() {
+  return new NextResponse(null, { status: 204 })
+}
+export function badRequest(error: string, details?: Record<string, string[]>) {
+  return NextResponse.json({ error, ...(details ? { details } : {}) }, { status: 400 })
+}
+export function unauthorized(error = 'Neautentificat') {
+  return NextResponse.json({ error }, { status: 401 })
+}
+export function forbidden(error = 'Acces interzis') {
+  return NextResponse.json({ error }, { status: 403 })
+}
+export function notFound(error = 'Resursa nu a fost găsită') {
+  return NextResponse.json({ error }, { status: 404 })
+}
+export function conflict(error: string) {
+  return NextResponse.json({ error }, { status: 409 })
+}
+export function serverError(error = 'Eroare internă server') {
+  return NextResponse.json({ error }, { status: 500 })
+}
+export function withAdmin(handler: Function) {
+  return handler
+}
+export async function apiFetch<T>(
+  url: string,
+  options?: RequestInit
+): Promise<{ data?: T; error?: string }> {
   try {
-    const body = await req.json()
-    const parsed = LoginSchema.safeParse(body)
-    if (!parsed.success) return badRequest('Date invalide')
-
-    const { email, password } = parsed.data
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { roles: true, profile: true },
+    const res = await fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
     })
-    if (!user) return badRequest('Email sau parolă incorectă')
-
-    const passwordOk = await verifyPassword(password, user.passwordHash)
-    if (!passwordOk) return badRequest('Email sau parolă incorectă')
-
-    if (user.status === 'SUSPENDED') return badRequest('Contul este suspendat')
-    if (!user.emailVerified) return badRequest('Email-ul nu a fost verificat')
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date(), failedLoginAttempts: 0 },
-    })
-
-    const session = {
-      id: user.id,
-      email: user.email,
-      roles: user.roles.map(r => r.role) as any,
-      profileComplete: user.profile?.profileComplete || false,
-      name: user.profile?.prenume || undefined,
-      judetCode: user.profile?.judetCode || undefined,
-    }
-
-    const token = await createSession(session)
-
-    const isAdmin = user.roles.some(r =>
-      ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r.role)
-    )
-
-    const redirectTo = user.profile?.profileComplete
-      ? isAdmin ? '/admin' : '/dashboard'
-      : '/profile/complete'
-
-    const response = NextResponse.json({ data: { redirectTo } }, { status: 200 })
-
-    response.cookies.set('aep_session', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: SESSION_MAX_AGE,
-      path: '/',
-    })
-
-    return response
-  } catch (err) {
-    console.error('Login error:', err)
-    return serverError()
+    const json = await res.json()
+    if (!res.ok) return { error: json.error || 'Eroare' }
+    return { data: json.data }
+  } catch {
+    return { error: 'Eroare de rețea' }
   }
 }
