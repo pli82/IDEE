@@ -21,16 +21,11 @@ export async function GET(req: NextRequest) {
       },
       include: {
         user: {
-          select: { email: true },
-          include: { profile: { select: { nume: true, prenume: true, judetCode: true } } } as any,
-        },
-        test: { select: { title: true, passingScore: true } },
-        answers: {
           include: {
-            question: { select: { text: true } },
-            selectedOption: { select: { text: true } },
+            profile: { select: { nume: true, prenume: true, judetCode: true } },
           },
         },
+        test: { select: { title: true, passingScore: true } },
       },
       orderBy: { startedAt: 'desc' },
     })
@@ -75,9 +70,7 @@ export async function GET(req: NextRequest) {
           type: 'pattern', pattern: 'solid',
           fgColor: { argb: passed ? 'FFd4edda' : 'FFf8d7da' },
         }
-        if (i % 2 === 1) {
-          r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } }
-        }
+        if (i % 2 === 1) r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } }
       })
       sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + Object.keys(rows[0]).length)}1` }
       sheet.views = [{ state: 'frozen', ySplit: 1 }]
