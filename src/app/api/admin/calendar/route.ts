@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/admin/calendar/route.ts - Admin calendar events
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, isAdmin, createAuditLog } from '@/lib/auth'
