@@ -175,7 +175,9 @@ export async function DELETE(request: NextRequest) {
   try {
     if (resource === 'tests') {
       await prisma.test.delete({ where: { id } })
-    } else if (resource === 'questions') {
+} else if (resource === 'questions') {
+      await prisma.attemptAnswer.deleteMany({ where: { questionId: id } })
+      await prisma.questionOption.deleteMany({ where: { questionId: id } })
       await prisma.question.delete({ where: { id } })
     } else {
       return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
