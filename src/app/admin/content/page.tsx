@@ -6,6 +6,9 @@ interface Module { id: string; title: string; description?: string; published: b
 
 const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '' }
 
+const apiFetch = (url: string, options: RequestInit = {}) =>
+  fetch(url, { ...options, credentials: 'include' })
+
 export default function AdminContent() {
   const [tab, setTab] = useState<'categories' | 'modules' | 'lessons'>('categories')
   const [categories, setCategories] = useState<Category[]>([])
@@ -20,11 +23,11 @@ export default function AdminContent() {
     setLoading(true)
     try {
       if (tab === 'categories') {
-        const r = await fetch('/api/admin/content?resource=categories')
+        const r = await apiFetch('/api/admin/content?resource=categories')
         const d = await r.json()
         setCategories(d.data || [])
       } else if (tab === 'modules') {
-        const r = await fetch('/api/admin/content?resource=modules')
+        const r = await apiFetch('/api/admin/content?resource=modules')
         const d = await r.json()
         setModules(d.data || [])
       }
@@ -61,7 +64,7 @@ export default function AdminContent() {
     const url = editItem
       ? `/api/admin/content?resource=${tab}&id=${editItem.id}`
       : `/api/admin/content?resource=${tab}`
-    const r = await fetch(url, {
+    const r = await apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
@@ -73,7 +76,7 @@ export default function AdminContent() {
   }
 
   const togglePublished = async (id: string, published: boolean, resource: string) => {
-    await fetch(`/api/admin/content?resource=${resource}&id=${id}`, {
+    await apiFetch(`/api/admin/content?resource=${resource}&id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ published: !published }),
@@ -83,7 +86,7 @@ export default function AdminContent() {
 
   const deleteItem = async (id: string, resource: string) => {
     if (!confirm('Ești sigur că vrei să ștergi acest element? Acțiunea este ireversibilă.')) return
-    await fetch(`/api/admin/content?resource=${resource}&id=${id}`, { method: 'DELETE' })
+    await apiFetch(`/api/admin/content?resource=${resource}&id=${id}`, { method: 'DELETE' })
     load()
   }
 
@@ -252,13 +255,4 @@ export default function AdminContent() {
                 </button>
                 <button type="submit"
                   className="px-4 py-2 text-sm bg-aep-600 text-white rounded-lg hover:bg-aep-700">
-                  {editItem ? 'Salvează modificările' : 'Adaugă'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+                  {editItem ? 'Salvează modificăr
