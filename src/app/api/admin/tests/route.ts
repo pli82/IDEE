@@ -176,9 +176,14 @@ export async function DELETE(request: NextRequest) {
     if (resource === 'tests') {
       await prisma.test.delete({ where: { id } })
 } else if (resource === 'questions') {
-      await prisma.attemptAnswer.deleteMany({ where: { questionId: id } })
-      await prisma.questionOption.deleteMany({ where: { questionId: id } })
-      await prisma.question.delete({ where: { id } })
+      const permanent = searchParams.get('permanent') === 'true'
+      if (permanent) {
+        await prisma.attemptAnswer.deleteMany({ where: { questionId: id } })
+        await prisma.questionOption.deleteMany({ where: { questionId: id } })
+        await prisma.question.delete({ where: { id } })
+      } else {
+        await prisma.question.update({ where: { id }, data: { active: false } })
+      }
     } else {
       return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
     }
