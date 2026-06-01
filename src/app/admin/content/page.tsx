@@ -187,10 +187,10 @@ export default function AdminContent() {
                     ...p,
                     title: e.target.value,
                     slug: editItem ? p.slug : e.target.value.toLowerCase()
-                      .replace(/\s+/g, '-')
-                      .replace(/[^a-z0-9-]/g, '')
                       .replace(/ă/g, 'a').replace(/â/g, 'a').replace(/î/g, 'i')
                       .replace(/ș/g, 's').replace(/ț/g, 't')
+                      .replace(/\s+/g, '-')
+                      .replace(/[^a-z0-9-]/g, '')
                   }))} />
               </div>
 
@@ -255,4 +255,13 @@ export default function AdminContent() {
                 </button>
                 <button type="submit"
                   className="px-4 py-2 text-sm bg-aep-600 text-white rounded-lg hover:bg-aep-700">
-                  {editItem ? 'Salvează modificăr
+                  {editItem ? 'Salvează modificările' : 'Adaugă'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
