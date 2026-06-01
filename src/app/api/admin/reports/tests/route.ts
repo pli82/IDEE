@@ -25,83 +25,182 @@ export async function GET(req: NextRequest) {
             profile: { select: { nume: true, prenume: true, judetCode: true } },
           },
         },
-        test: { select: { title: true, passingScore: true } },
+        test: { select: { id: true, title: true, passingScore: true } },
         answers: {
           include: {
-            question: { select: { text: true } },
+            question: { select: { id: true, text: true, order: true } },
           },
         },
       },
-      orderBy: { startedAt: 'desc' },
+      orderBy: [{ test: { id: 'asc' } }, { startedAt: 'desc' }],
     })
 
-    // Un rând per răspuns (întrebare)
-    const rows: any[] = []
-    for (const a of attempts as any[]) {
-      const nume = a.user.profile?.nume || '—'
-      const prenume = a.user.profile?.prenume || '—'
-      const email = a.user.email
-      const judet = a.user.profile?.judetCode || '—'
-      const test = a.test.title
-      const scor = a.score
-      const maxScor = a.maxScore
-      const promovat = a.passed ? 'DA' : 'NU'
-      const data = a.submittedAt?.toISOString().split('T')[0] || '—'
+    if (attempts.length === 0) {
+      const empty = '\uFEFFNu există date pentru perioada selectată'
+      if (format === 'csv') return new NextResponse(empty, {
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
+      })
+      const wb = new ExcelJS.Workbook()
+      wb.addWorksheet('Rezultate').addRow([empty])
+      const buf = await wb.xlsx.writeBuffer()
+      return new NextResponse(buf as any, {
+        headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="rezultate_teste.xlsx"' }
+      })
+    }
 
-      if (a.answers.length === 0) {
-        rows.push({ 'Nume': nume, 'Prenume': prenume, 'Email': email, 'Județ': judet, 'Test': test, 'Scor': `${scor}/${maxScor}`, 'Promovat': promovat, 'Data': data, 'Întrebare': '—', 'Răspuns': '—' })
-      } else {
-        for (const ans of a.answers) {
-          rows.push({
-            'Nume': nume,
-            'Prenume': prenume,
-            'Email': email,
-            'Județ': judet,
-            'Test': test,
-            'Scor': `${scor}/${maxScor}`,
-            'Promovat': promovat,
-            'Data': data,
-            'Întrebare': ans.question?.text || '—',
-            'Răspuns': ans.isCorrect ? 'CORECT' : 'GREȘIT',
-          })
+    // Colectează toate întrebările unice din răspunsuri
+    // Cheia: questionId, valoarea: textul întrebării (sau marcat șters)
+    const questionMap = new Map<string, { text: string; order: number; deleted: boolean }>()
+
+    for (const a of attempts as any[]) {
+      for (const ans of a.answers) {
+        if (!questionMap.has(ans.questionId)) {
+          if (ans.question) {
+            // Întrebare există încă
+            questionMap.set(ans.questionId, {
+              text: ans.question.text,
+              order: ans.question.order ?? 0,
+              deleted: false,
+            })
+          } else {
+            // Întrebare ștearsă — păstrăm ID-ul
+            questionMap.set(ans.questionId, {
+              text: `[Întrebare ștearsă - ${ans.questionId.slice(0, 8)}]`,
+              order: 9999,
+              deleted: true,
+            })
+          }
         }
       }
     }
 
-    if (format === 'csv') {
-      if (rows.length === 0) return new NextResponse('\uFEFFNu există date', {
-        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
+    // Sortează întrebările: mai întâi existente (după order), apoi șterse
+    const sortedQuestions = Array.from(questionMap.entries())
+      .sort((a, b) => {
+        if (a[1].deleted !== b[1].deleted) return a[1].deleted ? 1 : -1
+        return a[1].order - b[1].order
       })
+
+    // Construiește rândurile
+    const rows: any[] = []
+    for (const a of attempts as any[]) {
+      const answerMap: Record<string, boolean | null> = {}
+      for (const ans of a.answers) {
+        answerMap[ans.questionId] = ans.isCorrect
+      }
+
+      const row: any = {
+        'Nume': (a.user as any).profile?.nume || '—',
+        'Prenume': (a.user as any).profile?.prenume || '—',
+        'Email': (a.user as any).email,
+        'Județ': (a.user as any).profile?.judetCode || '—',
+        'Test': (a.test as any).title,
+        'Scor': `${a.score}/${a.maxScore}`,
+        'Promovat': a.passed ? 'DA' : 'NU',
+        'Data': a.submittedAt?.toISOString().split('T')[0] || '—',
+      }
+
+      // Adaugă coloană per întrebare
+      for (const [qId, qInfo] of sortedQuestions) {
+        const colName = qInfo.deleted
+          ? `❌ ${qInfo.text}`
+          : qInfo.text.length > 60
+            ? qInfo.text.slice(0, 60) + '...'
+            : qInfo.text
+
+        if (qId in answerMap) {
+          row[colName] = answerMap[qId] ? 'CORECT' : 'GREȘIT'
+        } else {
+          row[colName] = '—' // Nu a răspuns la această întrebare (nu era în setul random)
+        }
+      }
+
+      rows.push(row)
+    }
+
+    if (format === 'csv') {
       const headers = Object.keys(rows[0]).join(',')
-      const csvRows = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      const csvRows = rows.map(r =>
+        Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      )
       const csv = '\uFEFF' + [headers, ...csvRows].join('\n')
       return new NextResponse(csv, {
-        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="rezultate_teste.csv"',
+        },
       })
     }
 
+    // Excel
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Rezultate Teste')
-    if (rows.length > 0) {
-      sheet.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: key === 'Întrebare' ? 50 : 22 }))
-      sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1a4480' } }
-      sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
-      rows.forEach((row, i) => {
-        const r = sheet.addRow(row)
-        const isCorrect = row['Răspuns'] === 'CORECT'
-        const isWrong = row['Răspuns'] === 'GREȘIT'
-        if (isCorrect) r.getCell('Răspuns').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFd4edda' } }
-        if (isWrong) r.getCell('Răspuns').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf8d7da' } }
-        if (i % 2 === 1) r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } }
+
+    const columnKeys = Object.keys(rows[0])
+    const fixedCols = ['Nume', 'Prenume', 'Email', 'Județ', 'Test', 'Scor', 'Promovat', 'Data']
+
+    sheet.columns = columnKeys.map(key => ({
+      header: key,
+      key,
+      width: fixedCols.includes(key) ? 18 : Math.min(key.length, 40),
+    }))
+
+    // Header styling
+    const headerRow = sheet.getRow(1)
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    columnKeys.forEach((key, i) => {
+      const cell = headerRow.getCell(i + 1)
+      const isDeleted = key.startsWith('❌')
+      cell.fill = {
+        type: 'pattern', pattern: 'solid',
+        fgColor: { argb: isDeleted ? 'FF6c757d' : 'FF1a4480' },
+      }
+    })
+
+    // Data rows
+    rows.forEach((row, i) => {
+      const r = sheet.addRow(row)
+
+      // Colorează Promovat
+      const promovatIdx = columnKeys.indexOf('Promovat') + 1
+      if (promovatIdx > 0) {
+        r.getCell(promovatIdx).fill = {
+          type: 'pattern', pattern: 'solid',
+          fgColor: { argb: row['Promovat'] === 'DA' ? 'FFd4edda' : 'FFf8d7da' },
+        }
+      }
+
+      // Colorează CORECT/GREȘIT per întrebare
+      columnKeys.forEach((key, colIdx) => {
+        if (!fixedCols.includes(key)) {
+          const val = row[key]
+          if (val === 'CORECT') {
+            r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFd4edda' } }
+          } else if (val === 'GREȘIT') {
+            r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf8d7da' } }
+          }
+        }
       })
-      sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + Object.keys(rows[0]).length)}1` }
-      sheet.views = [{ state: 'frozen', ySplit: 1 }]
-    } else {
-      sheet.addRow(['Nu există date pentru perioada selectată'])
-    }
+
+      // Zebra
+      if (i % 2 === 1) {
+        r.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (!cell.fill || (cell.fill as any).fgColor?.argb === undefined) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } }
+          }
+        })
+      }
+    })
+
+    sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + Math.min(columnKeys.length, 26))}1` }
+    sheet.views = [{ state: 'frozen', xSplit: fixedCols.length, ySplit: 1 }]
+
     const buffer = await workbook.xlsx.writeBuffer()
     return new NextResponse(buffer as any, {
-      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="rezultate_teste.xlsx"' }
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="rezultate_teste.xlsx"',
+      },
     })
   } catch (e) {
     console.error('Tests report error:', e)
