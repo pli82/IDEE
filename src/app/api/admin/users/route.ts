@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, isAdmin, createAuditLog } from '@/lib/auth'
+import { NextResponse } from 'next/server'
 import { ok, unauthorized, forbidden, serverError } from '@/lib/api'
 import { z } from 'zod'
 
@@ -47,7 +48,7 @@ profile: true,
       prisma.user.count({ where }),
     ])
 
-    return ok({ data: users, total, page, pages: Math.ceil(total / limit) } as any)
+return NextResponse.json({ data: users, total, page, pages: Math.ceil(total / limit) })
   } catch {
     return serverError()
   }
