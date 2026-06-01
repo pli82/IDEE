@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/admin/content/route.ts - Gestionare categorii, module, lecții
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
