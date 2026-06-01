@@ -24,11 +24,11 @@ export default function RegisterPage() {
     e.preventDefault()
     if (form.password !== form.confirmPassword) { setError('Parolele nu coincid'); return }
     setError(''); setLoading(true)
-    const r = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email, password: form.password, phone: form.phone }),
-    })
+   const r = await fetch('/api/auth/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: form.email, password: form.password, phone: form.phone, calitate: form.calitate }),
+})
     const d = await r.json()
     setLoading(false)
     if (!r.ok) { setError(d.error || 'Eroare la înregistrare'); return }
@@ -91,6 +91,17 @@ export default function RegisterPage() {
                   <input type="password" required className="input"
                     value={form.confirmPassword} onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))} />
                 </div>
+                <div>
+  <label className="label">Calitate *</label>
+  <select required className="input"
+    value={form.calitate}
+    onChange={e => setForm(p => ({ ...p, calitate: e.target.value }))}>
+    <option value="">Selectează calitatea deținută</option>
+    {CALITATE_OPTIONS.map(opt => (
+      <option key={opt} value={opt}>{opt}</option>
+    ))}
+  </select>
+</div>
                 <div className="flex items-start gap-2 text-sm text-gray-600">
                   <input type="checkbox" required className="mt-0.5 flex-shrink-0" id="gdpr" />
                   <label htmlFor="gdpr">
