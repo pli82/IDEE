@@ -20,10 +20,11 @@ export default function AdminReports() {
     } finally { setLoading(false) }
   }
 
-  const exportData = (format: 'csv' | 'xlsx') => {
-    const url = `/api/admin/reports?type=${activeTab}&format=${format}&from=${dateFrom}&to=${dateTo}`
-    window.open(url, '_blank')
-  }
+const exportData = (format: 'csv' | 'xlsx') => {
+  const endpoint = activeTab === 'users' ? 'progress' : activeTab === 'tests' ? 'tests' : 'audit'
+  const url = `/api/admin/reports/${endpoint}?format=${format}&from=${dateFrom}&to=${dateTo}`
+  window.open(url, '_blank')
+}
 
   return (
     <div className="space-y-6">
