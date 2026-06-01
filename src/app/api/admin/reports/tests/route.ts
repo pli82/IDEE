@@ -70,10 +70,10 @@ questionMap.set(ans.questionId, {
               order: q.order ?? 0,
               deleted: false,
             })
-          } else {
-            // Întrebare ștearsă — păstrăm ID-ul
+} else {
+            // Întrebare ștearsă — folosim textul salvat în răspuns
             questionMap.set(ans.questionId, {
-              text: `[Întrebare ștearsă - ${ans.questionId.slice(0, 8)}]`,
+              text: ans.questionText || `[Întrebare ștearsă - ${ans.questionId.slice(0, 8)}]`,
               order: 9999,
               deleted: true,
             })
