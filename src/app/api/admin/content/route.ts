@@ -1,10 +1,28 @@
 export const dynamic = 'force-dynamic'
-// src/app/api/admin/content/route.ts - Gestionare categorii, module, lecții
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { createAuditLog } from '@/lib/auth'
+import { jwtVerify } from 'jose'
 import { z } from 'zod'
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'fallback-secret-change-in-production'
+)
+
+async function getSessionFromRequest(request: NextRequest) {
+  const token = request.cookies.get('aep_session')?.value
+  if (!token) return null
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    return payload
+  } catch {
+    return null
+  }
+}
+
+function isAdminSession(session: any) {
+  const roles = session?.roles as string[] || []
+  return roles.some(r => ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r))
+}
 
 const CategorySchema = z.object({
   title: z.string().min(2).max(200),
@@ -23,20 +41,8 @@ const ModuleSchema = z.object({
   published: z.boolean().default(false),
 })
 
-const LessonSchema = z.object({
-  moduleId: z.string(),
-  title: z.string().min(2).max(200),
-  description: z.string().max(2000).optional(),
-  videoUrl: z.string().url().optional().nullable(),
-  videoFileId: z.string().optional().nullable(),
-  pdfFileId: z.string().optional().nullable(),
-  order: z.number().int().default(0),
-  published: z.boolean().default(false),
-  minWatchPercentForTest: z.number().int().min(0).max(100).default(0),
-})
-
 export async function GET(request: NextRequest) {
-  const session = await getSession()
+  const session = await getSessionFromRequest(request)
   if (!session) return NextResponse.json({ error: 'Neautentificat' }, { status: 401 })
 
   const { searchParams } = request.nextUrl
@@ -74,8 +80,6 @@ export async function GET(request: NextRequest) {
         where: moduleId ? { moduleId } : undefined,
         include: {
           module: { select: { title: true } },
-          videoFile: { select: { filename: true, storagePath: true } },
-          pdfFile: { select: { filename: true, storagePath: true } },
         },
         orderBy: { order: 'asc' },
       })
@@ -84,13 +88,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
   } catch (error) {
+    console.error('Content GET error:', error)
     return NextResponse.json({ error: 'Eroare server' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Neautentificat' }, { status: 401 })
+  const session = await getSessionFromRequest(request)
+  if (!session || !isAdminSession(session)) return NextResponse.json({ error: 'Neautorizat' }, { status: 403 })
 
   const { searchParams } = request.nextUrl
   const resource = searchParams.get('resource') || 'categories'
@@ -101,22 +106,13 @@ export async function POST(request: NextRequest) {
     if (resource === 'categories') {
       const data = CategorySchema.parse(body)
       const category = await prisma.contentCategory.create({ data })
-      await createAuditLog({ actorId: session.id, action: 'CREATE_CATEGORY', entityType: 'ContentCategory', entityId: category.id })
       return NextResponse.json({ data: category }, { status: 201 })
     }
 
     if (resource === 'modules') {
       const data = ModuleSchema.parse(body)
       const module = await prisma.module.create({ data })
-      await createAuditLog({ actorId: session.id, action: 'CREATE_MODULE', entityType: 'Module', entityId: module.id })
       return NextResponse.json({ data: module }, { status: 201 })
-    }
-
-    if (resource === 'lessons') {
-      const data = LessonSchema.parse(body)
-      const lesson = await prisma.lesson.create({ data })
-      await createAuditLog({ actorId: session.id, action: 'CREATE_LESSON', entityType: 'Lesson', entityId: lesson.id })
-      return NextResponse.json({ data: lesson }, { status: 201 })
     }
 
     return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
@@ -124,18 +120,18 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Date invalide', details: error.errors }, { status: 400 })
     }
+    console.error('Content POST error:', error)
     return NextResponse.json({ error: 'Eroare server' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Neautentificat' }, { status: 401 })
+  const session = await getSessionFromRequest(request)
+  if (!session || !isAdminSession(session)) return NextResponse.json({ error: 'Neautorizat' }, { status: 403 })
 
   const { searchParams } = request.nextUrl
   const resource = searchParams.get('resource')
   const id = searchParams.get('id')
-
   if (!id) return NextResponse.json({ error: 'ID lipsă' }, { status: 400 })
 
   try {
@@ -144,7 +140,6 @@ export async function PUT(request: NextRequest) {
     if (resource === 'categories') {
       const data = CategorySchema.partial().parse(body)
       const category = await prisma.contentCategory.update({ where: { id }, data })
-      await createAuditLog({ actorId: session.id, action: 'UPDATE_CATEGORY', entityType: 'ContentCategory', entityId: id })
       return NextResponse.json({ data: category })
     }
 
@@ -155,8 +150,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (resource === 'lessons') {
-      const data = LessonSchema.partial().parse(body)
-      const lesson = await prisma.lesson.update({ where: { id }, data })
+      const lesson = await prisma.lesson.update({ where: { id }, data: body })
       return NextResponse.json({ data: lesson })
     }
 
@@ -165,18 +159,18 @@ export async function PUT(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Date invalide', details: error.errors }, { status: 400 })
     }
+    console.error('Content PUT error:', error)
     return NextResponse.json({ error: 'Eroare server' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Neautentificat' }, { status: 401 })
+  const session = await getSessionFromRequest(request)
+  if (!session || !isAdminSession(session)) return NextResponse.json({ error: 'Neautorizat' }, { status: 403 })
 
   const { searchParams } = request.nextUrl
   const resource = searchParams.get('resource')
   const id = searchParams.get('id')
-
   if (!id) return NextResponse.json({ error: 'ID lipsă' }, { status: 400 })
 
   try {
@@ -189,10 +183,9 @@ export async function DELETE(request: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
     }
-
-    await createAuditLog({ actorId: session.id, action: `DELETE_${resource?.toUpperCase()}`, entityType: resource || '', entityId: id })
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error('Content DELETE error:', error)
     return NextResponse.json({ error: 'Eroare server' }, { status: 500 })
   }
 }
