@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       return badRequest('Date invalide', parsed.error.flatten().fieldErrors as Record<string, string[]>)
     }
 
-    const { email, password, phone } = parsed.data
+   const { email, password, phone } = parsed.data
+const calitate = (body as any).calitate || null
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) return conflict('Un cont cu această adresă de email există deja')
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     const otpHash = await hashOtp(otp)
     const otpExpires = new Date(Date.now() + parseInt(process.env.OTP_EXPIRES_MINUTES || '10', 10) * 60_000)
 
-    const user = await prisma.user.create({
+const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
@@ -37,6 +38,15 @@ export async function POST(req: NextRequest) {
             type: 'EMAIL_VERIFY',
             expiresAt: otpExpires,
           },
+        },
+        profile: {
+          create: {
+            calitate: calitate,
+            profileComplete: false,
+          },
+        },
+        roles: {
+          create: [{ role: 'USER' }],
         },
       },
     })
