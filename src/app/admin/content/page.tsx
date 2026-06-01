@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 
 interface Category { id: string; title: string; slug: string; description?: string; published: boolean; order: number; _count: { modules: number } }
 interface Module { id: string; title: string; description?: string; published: boolean; categoryId: string; category: { title: string }; _count: { lessons: number } }
+interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; pdfUrl?: string; order: number; minWatchPercentForTest: number }
 
-const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '' }
+const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', pdfUrl: '', minWatchPercentForTest: 0 }
 
 const apiFetch = (url: string, options: RequestInit = {}) =>
   fetch(url, { ...options, credentials: 'include' })
@@ -13,6 +14,7 @@ export default function AdminContent() {
   const [tab, setTab] = useState<'categories' | 'modules' | 'lessons'>('categories')
   const [categories, setCategories] = useState<Category[]>([])
   const [modules, setModules] = useState<Module[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
@@ -30,6 +32,16 @@ export default function AdminContent() {
         const r = await apiFetch('/api/admin/content?resource=modules')
         const d = await r.json()
         setModules(d.data || [])
+      } else if (tab === 'lessons') {
+        // încarcă și modulele pentru selectbox
+        const [lr, mr] = await Promise.all([
+          apiFetch('/api/admin/content?resource=lessons'),
+          apiFetch('/api/admin/content?resource=modules'),
+        ])
+        const ld = await lr.json()
+        const md = await mr.json()
+        setLessons(ld.data || [])
+        setModules(md.data || [])
       }
     } finally { setLoading(false) }
   }
@@ -52,6 +64,10 @@ export default function AdminContent() {
       order: item.order || 0,
       published: item.published || false,
       categoryId: item.categoryId || '',
+      moduleId: item.moduleId || '',
+      videoUrl: item.videoUrl || '',
+      pdfUrl: item.pdfUrl || '',
+      minWatchPercentForTest: item.minWatchPercentForTest || 0,
     })
     setError('')
     setShowForm(true)
@@ -64,10 +80,25 @@ export default function AdminContent() {
     const url = editItem
       ? `/api/admin/content?resource=${tab}&id=${editItem.id}`
       : `/api/admin/content?resource=${tab}`
+
+    let body: any = { ...formData }
+    if (tab === 'lessons') {
+      body = {
+        title: formData.title,
+        description: formData.description,
+        moduleId: formData.moduleId,
+        videoUrl: formData.videoUrl || null,
+        pdfUrl: formData.pdfUrl || null,
+        order: formData.order,
+        published: formData.published,
+        minWatchPercentForTest: formData.minWatchPercentForTest,
+      }
+    }
+
     const r = await apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(body),
     })
     const d = await r.json()
     if (!r.ok) { setError(d.error || 'Eroare la salvare'); return }
@@ -90,7 +121,7 @@ export default function AdminContent() {
     load()
   }
 
-  const items = tab === 'categories' ? categories : modules
+  const items = tab === 'categories' ? categories : tab === 'modules' ? modules : lessons
 
   return (
     <div className="space-y-6">
@@ -126,8 +157,10 @@ export default function AdminContent() {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Titlu</th>
                 {tab === 'modules' && <th className="text-left px-4 py-3 font-medium text-gray-600">Categorie</th>}
+                {tab === 'lessons' && <th className="text-left px-4 py-3 font-medium text-gray-600">Modul</th>}
+                {tab === 'lessons' && <th className="text-left px-4 py-3 font-medium text-gray-600">Fișiere</th>}
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Conținut</th>
+                {tab !== 'lessons' && <th className="text-left px-4 py-3 font-medium text-gray-600">Conținut</th>}
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Acțiuni</th>
               </tr>
             </thead>
@@ -142,14 +175,29 @@ export default function AdminContent() {
                   {tab === 'modules' && (
                     <td className="px-4 py-3 text-gray-500 text-xs">{item.category?.title || '—'}</td>
                   )}
+                  {tab === 'lessons' && (
+                    <td className="px-4 py-3 text-gray-500 text-xs">{item.module?.title || '—'}</td>
+                  )}
+                  {tab === 'lessons' && (
+                    <td className="px-4 py-3 text-xs space-y-0.5">
+                      {item.videoUrl
+                        ? <div className="flex items-center gap-1 text-blue-600"><span>🎬</span><span>Video</span></div>
+                        : <div className="text-gray-300">Fără video</div>}
+                      {item.pdfUrl
+                        ? <div className="flex items-center gap-1 text-red-600"><span>📄</span><span>Suport curs</span></div>
+                        : <div className="text-gray-300">Fără PDF</div>}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {item.published ? 'Publicat' : 'Draft'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții`}
-                  </td>
+                  {tab !== 'lessons' && (
+                    <td className="px-4 py-3 text-gray-500">
+                      {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții`}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right space-x-2">
                     <button onClick={() => openEdit(item)}
                       className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50">
@@ -172,8 +220,8 @@ export default function AdminContent() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">
               {editItem ? 'Modifică' : 'Adaugă'} {tab === 'categories' ? 'categorie' : tab === 'modules' ? 'modul' : 'lecție'}
             </h2>
@@ -186,7 +234,7 @@ export default function AdminContent() {
                   onChange={e => setFormData(p => ({
                     ...p,
                     title: e.target.value,
-                    slug: editItem ? p.slug : e.target.value.toLowerCase()
+                    slug: (editItem || tab === 'lessons') ? p.slug : e.target.value.toLowerCase()
                       .replace(/ă/g, 'a').replace(/â/g, 'a').replace(/î/g, 'i')
                       .replace(/ș/g, 's').replace(/ț/g, 't')
                       .replace(/\s+/g, '-')
@@ -218,6 +266,59 @@ export default function AdminContent() {
                     ))}
                   </select>
                 </div>
+              )}
+
+              {tab === 'lessons' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Modul *</label>
+                    <select required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.moduleId}
+                      onChange={e => setFormData(p => ({ ...p, moduleId: e.target.value }))}>
+                      <option value="">Selectează modulul</option>
+                      {modules.map(m => (
+                        <option key={m.id} value={m.id}>{m.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      🎬 URL Video (YouTube, Vimeo sau link direct)
+                    </label>
+                    <input type="url" placeholder="https://www.youtube.com/embed/..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.videoUrl}
+                      onChange={e => setFormData(p => ({ ...p, videoUrl: e.target.value }))} />
+                    <p className="text-xs text-gray-400 mt-1">
+                      YouTube: folosește link-ul de tip embed (youtube.com/embed/ID)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      📄 URL Suport de curs (PDF — Google Drive, OneDrive etc.)
+                    </label>
+                    <input type="url" placeholder="https://drive.google.com/file/d/.../preview"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.pdfUrl}
+                      onChange={e => setFormData(p => ({ ...p, pdfUrl: e.target.value }))} />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Google Drive: Share → Anyone with link → copiază link-ul de previzualizare
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      % minim vizionare video pentru acces test (0 = fără restricție)
+                    </label>
+                    <input type="number" min={0} max={100}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.minWatchPercentForTest}
+                      onChange={e => setFormData(p => ({ ...p, minWatchPercentForTest: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                </>
               )}
 
               <div>
