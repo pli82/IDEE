@@ -4,17 +4,10 @@ import { useRouter } from 'next/navigation'
 import { COUNTIES } from '@/lib/counties'
 
 const STUDII_OPTIONS = ['Liceale', 'Postliceale', 'Universitare (licență)', 'Master', 'Doctorat', 'Alt nivel']
-const CALITATE_OPTIONS = [
-  'Expert electoral înscris în Corpul experților electorali',
-  'Persoană care dorește să participe la examenul de admitere în Corpul experților electorali',
-  'Operator de calculator în cadrul birourilor electorale',
-  'Membru birou electoral',
-  'Alt rol în procesul electoral',
-]
 
 export default function ProfileCompletePage() {
   const router = useRouter()
-  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', phone: '', adresa: '', judetCode: '', studii: '', calitate: '', serieCI: '', numarCI: '', dataExpirareCI: '', gdprConsent: false })
+  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', serieCI: '', numarCI: '', dataExpirareCI: '', gdprConsent: false })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -70,10 +63,6 @@ export default function ProfileCompletePage() {
                 </select>
               </div>
               <div>
-                <label className="label">Telefon *</label>
-                <input type="tel" required className="input" placeholder="07xx xxx xxx" value={form.phone} onChange={e => fi('phone', e.target.value)} />
-              </div>
-              <div>
                 <label className="label">Județ *</label>
                 <select required className="input" value={form.judetCode} onChange={e => fi('judetCode', e.target.value)}>
                   <option value="">Selectați</option>
@@ -87,19 +76,6 @@ export default function ProfileCompletePage() {
                   {STUDII_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="label">Calitate *</label>
-              <select required className="input" value={form.calitate} onChange={e => fi('calitate', e.target.value)}>
-                <option value="">Selectați calitatea deținută</option>
-                {CALITATE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="label">Adresă</label>
-              <textarea rows={2} className="input" value={form.adresa} onChange={e => fi('adresa', e.target.value)} />
             </div>
 
             <fieldset className="border border-gray-200 rounded-lg p-4">
