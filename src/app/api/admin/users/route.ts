@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       prisma.user.findMany({
         where,
         include: {
-          profile: { include: { county: true } },
+profile: true,
           roles: true,
         },
         orderBy: { createdAt: 'desc' },
