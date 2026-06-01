@@ -77,7 +77,7 @@ export default function RegisterPage() {
                     value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="label">Telefon</label>
+<label className="label">Telefon *</label>
 <input type="tel" required className="input" placeholder="07xx xxx xxx"
   value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
                 </div>
