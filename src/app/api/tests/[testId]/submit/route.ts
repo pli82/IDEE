@@ -26,7 +26,6 @@ export async function POST(
 
     const { answers } = parsed.data
 
-    // Obține testul cu răspunsurile corecte
     const test = await prisma.test.findUnique({
       where: { id: params.testId },
       select: {
@@ -49,16 +48,17 @@ export async function POST(
 
     if (!test) return badRequest('Test inexistent')
 
-    // Calculează scorul
     let score = 0
     const results = answers.map(answer => {
       const question = test.questions.find(q => q.id === answer.questionId)
-      if (!question) return { questionId: answer.questionId, questionText: '', selectedOptionId: answer.selectedOptionId, correctOptionId: null, isCorrect: false, options: [] }
-
+      if (!question) return {
+        questionId: answer.questionId, questionText: '',
+        selectedOptionId: answer.selectedOptionId,
+        correctOptionId: null, isCorrect: false, options: []
+      }
       const correctOption = question.options.find(o => o.isCorrect)
       const isCorrect = answer.selectedOptionId === correctOption?.id
       if (isCorrect) score++
-
       return {
         questionId: question.id,
         questionText: question.text,
@@ -73,7 +73,6 @@ export async function POST(
     const passed = score >= test.passingScore
     const percentage = Math.round((score / maxScore) * 100)
 
-    // Salvează tentativa în DB
     const attempt = await prisma.testAttempt.create({
       data: {
         userId: session.id,
@@ -90,21 +89,14 @@ export async function POST(
               selectedOptionId: a.selectedOptionId,
               isCorrect: result?.isCorrect || false,
               points: result?.isCorrect ? 1 : 0,
+              questionText: result?.questionText || '',
             }
           }),
         },
       },
     })
 
-    return ok({
-      attemptId: attempt.id,
-      score,
-      maxScore,
-      passingScore: test.passingScore,
-      passed,
-      percentage,
-      results,
-    })
+    return ok({ attemptId: attempt.id, score, maxScore, passingScore: test.passingScore, passed, percentage, results })
   } catch (err) {
     console.error('Test submit error:', err)
     return serverError()
