@@ -14,7 +14,7 @@ export default function AdminReports() {
   const loadStats = async () => {
     setLoading(true)
     try {
-      const r = await fetch('/api/admin/reports?type=stats')
+      const r = await fetch('/api/admin/reports/stats', { credentials: 'include' })
       const d = await r.json()
       setStats(d)
     } finally { setLoading(false) }
