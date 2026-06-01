@@ -41,6 +41,17 @@ const ModuleSchema = z.object({
   published: z.boolean().default(false),
 })
 
+const LessonSchema = z.object({
+  moduleId: z.string(),
+  title: z.string().min(2).max(200),
+  description: z.string().max(2000).optional(),
+  videoUrl: z.string().url().optional().nullable(),
+  pdfUrl: z.string().url().optional().nullable(),
+  order: z.number().int().default(0),
+  published: z.boolean().default(false),
+  minWatchPercentForTest: z.number().int().min(0).max(100).default(0),
+})
+
 export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request)
   if (!session) return NextResponse.json({ error: 'Neautentificat' }, { status: 401 })
@@ -115,6 +126,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: module }, { status: 201 })
     }
 
+    if (resource === 'lessons') {
+      const data = LessonSchema.parse(body)
+      const lesson = await prisma.lesson.create({ data })
+      return NextResponse.json({ data: lesson }, { status: 201 })
+    }
+
     return NextResponse.json({ error: 'Resursă invalidă' }, { status: 400 })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -150,7 +167,8 @@ export async function PUT(request: NextRequest) {
     }
 
     if (resource === 'lessons') {
-      const lesson = await prisma.lesson.update({ where: { id }, data: body })
+      const data = LessonSchema.partial().parse(body)
+      const lesson = await prisma.lesson.update({ where: { id }, data })
       return NextResponse.json({ data: lesson })
     }
 
