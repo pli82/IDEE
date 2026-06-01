@@ -1,4 +1,3 @@
-// src/middleware.ts - Middleware Next.js pentru autorizare rute
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
@@ -17,9 +16,6 @@ const PUBLIC_PATHS = [
   '/politica-confidentialitate',
   '/termeni-utilizare',
   '/contact',
-]
-
-const PUBLIC_API_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/verify-otp',
@@ -31,11 +27,11 @@ const PUBLIC_API_PATHS = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rute publice
-  if (
-    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/')) ||
-    PUBLIC_API_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
-  ) {
+  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+    return NextResponse.next()
+  }
+
+  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
     return NextResponse.next()
   }
 
@@ -53,10 +49,9 @@ export async function middleware(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
 
-    // Rute admin - verifică rolul
     if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
       const roles = payload.roles as string[]
-      const isAdmin = roles?.some((r) =>
+      const isAdmin = roles?.some(r =>
         ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r)
       )
       if (!isAdmin) {
@@ -65,18 +60,6 @@ export async function middleware(request: NextRequest) {
         }
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
-    }
-
-    // Profil incomplet => redirecționare la completare
-    const skipProfileCheck =
-      pathname.startsWith('/profile/complete') ||
-      pathname.startsWith('/api/profile') ||
-      pathname.startsWith('/api/auth') ||
-      pathname.startsWith('/admin') ||
-      pathname.startsWith('/api/admin')
-
-    if (!payload.profileComplete && !skipProfileCheck && !pathname.startsWith('/api/')) {
-      return NextResponse.redirect(new URL('/profile/complete', request.url))
     }
 
     return NextResponse.next()
@@ -91,5 +74,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|demo/).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
