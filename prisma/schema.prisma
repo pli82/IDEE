@@ -189,13 +189,14 @@ model Lesson {
   title                   String
   description             String?
   videoFileId             String?
-  videoUrl                String?   // URL extern opțional
+  videoUrl                String?
   videoFile               UploadedFile? @relation("LessonVideo", fields: [videoFileId], references: [id])
   pdfFileId               String?
+  pdfUrl                  String?
   pdfFile                 UploadedFile? @relation("LessonPDF", fields: [pdfFileId], references: [id])
   order                   Int       @default(0)
   published               Boolean   @default(false)
-  minWatchPercentForTest  Int       @default(0) // 0 = fără restricție
+  minWatchPercentForTest  Int       @default(0)
   
   progress    Progress[]
   tests       Test[]     @relation("LessonTests")
