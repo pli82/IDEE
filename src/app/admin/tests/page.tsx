@@ -174,11 +174,20 @@ export default function AdminTests() {
     if (selectedTest) loadQuestions(selectedTest.id)
   }
 
-  const deleteQuestion = async (id: string) => {
-    if (!confirm('Ștergi această întrebare?')) return
-    await apiFetch(`/api/admin/tests?resource=questions&id=${id}`, { method: 'DELETE' })
-    if (selectedTest) loadQuestions(selectedTest.id)
+const deleteQuestion = async (id: string, permanent: boolean) => {
+  if (permanent) {
+    if (!confirm('Ștergi DEFINITIV această întrebare și toate răspunsurile din rapoarte? Acțiunea este ireversibilă.')) return
+    await apiFetch(`/api/admin/tests?resource=questions&id=${id}&permanent=true`, { method: 'DELETE' })
+  } else {
+    if (!confirm('Dezactivezi această întrebare? Nu va mai apărea în teste noi, dar răspunsurile vechi rămân în rapoarte.')) return
+    await apiFetch(`/api/admin/tests?resource=questions&id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false }),
+    })
   }
+  if (selectedTest) loadQuestions(selectedTest.id)
+}
 
   const toggleTestPublished = async (test: Test) => {
     await apiFetch(`/api/admin/tests?resource=tests&id=${test.id}`, {
@@ -302,10 +311,14 @@ export default function AdminTests() {
                             className={`text-xs px-2 py-0.5 rounded-full ${q.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {q.active ? 'Activ' : 'Inactiv'}
                           </button>
-                          <button onClick={() => deleteQuestion(q.id)}
-                            className="text-xs px-2 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
-                            Șterge
-                          </button>
+<button onClick={() => deleteQuestion(q.id, false)}
+  className="text-xs px-2 py-0.5 rounded border border-orange-200 text-orange-500 hover:bg-orange-50">
+  Dezactivează
+</button>
+<button onClick={() => deleteQuestion(q.id, true)}
+  className="text-xs px-2 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
+  Șterge definitiv
+</button>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 ml-5">
