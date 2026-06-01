@@ -56,9 +56,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-sm text-blue-200 hidden sm:block">
               {user?.name ? `Bun venit, ${user.name}!` : user?.email}
             </span>
-            <Link href="/api/auth/logout" className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
-              Ieșire
-            </Link>
+            <button
+  onClick={async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    window.location.href = '/auth/login'
+  }}
+  className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
+  Ieșire
+</button>
           </div>
         </div>
       </header>
