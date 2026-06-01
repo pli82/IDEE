@@ -65,7 +65,7 @@ export default function LessonPage() {
     setSaving(true)
     try {
       await fetch(`/api/courses/lessons/${lessonId}/progress`, {
-        method: 'POST',
+        method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, watchedPercent: percent }),
