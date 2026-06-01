@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/admin/tests/route.ts - Gestionare teste admin
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, isAdmin, createAuditLog } from '@/lib/auth'
