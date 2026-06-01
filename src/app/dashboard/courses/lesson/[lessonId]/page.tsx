@@ -16,134 +16,133 @@ interface Lesson {
 }
 
 declare global {
-  interface Window {
-    YT: any
-    onYouTubeIframeAPIReady: () => void
-  }
+  interface Window { YT: any; onYouTubeIframeAPIReady: () => void }
 }
 
 export default function LessonPage() {
   const params = useParams()
   const lessonId = params.lessonId as string
+
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'video' | 'pdf'>('video')
   const [status, setStatus] = useState<'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'>('NOT_STARTED')
   const [watchedPercent, setWatchedPercent] = useState(0)
-  const [lastPosition, setLastPosition] = useState(0)
   const [saving, setSaving] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
-  const [playerReady, setPlayerReady] = useState(false)
 
+  // Refs care nu declanșează re-render
   const playerRef = useRef<any>(null)
-  const playerContainerRef = useRef<HTMLDivElement>(null)
+  const playerDivRef = useRef<HTMLDivElement>(null)
+  const playerInitialized = useRef(false)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const lessonRef = useRef<Lesson | null>(null)
-  const statusRef = useRef(status)
-  const watchedPercentRef = useRef(watchedPercent)
-  const lastPositionRef = useRef(lastPosition)
+  const savedPosition = useRef(0)      // poziția salvată din DB
+  const statusRef = useRef('NOT_STARTED')
+  const watchedPercentRef = useRef(0)
+  const lessonIdRef = useRef(lessonId)
 
-  // Sync refs
   useEffect(() => { statusRef.current = status }, [status])
   useEffect(() => { watchedPercentRef.current = watchedPercent }, [watchedPercent])
-  useEffect(() => { lastPositionRef.current = lastPosition }, [lastPosition])
-  useEffect(() => { lessonRef.current = lesson }, [lesson])
 
   const extractYouTubeId = (url: string) => {
-    const patterns = [
-      /youtube\.com\/embed\/([^?&]+)/,
-      /youtube\.com\/watch\?v=([^&]+)/,
-      /youtu\.be\/([^?]+)/,
-    ]
-    for (const p of patterns) {
-      const m = url.match(p)
-      if (m) return m[1]
-    }
+    const patterns = [/youtube\.com\/embed\/([^?&]+)/, /youtube\.com\/watch\?v=([^&]+)/, /youtu\.be\/([^?]+)/]
+    for (const p of patterns) { const m = url.match(p); if (m) return m[1] }
     return null
   }
 
-  const saveProgress = useCallback(async (newStatus: string, percent: number, positionSeconds: number) => {
+  const saveProgress = useCallback(async (percent: number, positionSeconds: number) => {
     try {
-      await fetch(`/api/courses/lessons/${lessonId}/progress`, {
+      await fetch(`/api/courses/lessons/${lessonIdRef.current}/progress`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ watchedPercent: percent, lastPositionSeconds: positionSeconds }),
       })
-    } catch (e) {
-      console.error('Progress save error:', e)
-    }
-  }, [lessonId])
+    } catch (e) { console.error('Save error:', e) }
+  }, [])
 
-  // Salvează la ieșirea din pagină
+  // Salvează la ieșire
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleUnload = () => {
       if (playerRef.current && statusRef.current !== 'COMPLETED') {
         try {
-          const currentTime = playerRef.current.getCurrentTime?.() || lastPositionRef.current
-          const duration = playerRef.current.getDuration?.() || 1
-          const percent = Math.min((currentTime / duration) * 100, 99)
-          saveProgress('IN_PROGRESS', percent, currentTime)
+          const t = playerRef.current.getCurrentTime?.() || 0
+          const d = playerRef.current.getDuration?.() || 1
+          const p = Math.min((t / d) * 100, 99)
+          // Folosim sendBeacon pentru siguranță la unload
+          navigator.sendBeacon(
+            `/api/courses/lessons/${lessonIdRef.current}/progress`,
+            JSON.stringify({ watchedPercent: p, lastPositionSeconds: t })
+          )
         } catch (e) {}
       }
     }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [saveProgress])
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
+  }, [])
 
-  // Inițializare YouTube IFrame API
-  useEffect(() => {
-    if (!lesson?.videoUrl) return
-    const videoId = extractYouTubeId(lesson.videoUrl)
-    if (!videoId) return
+  // Inițializare player — o singură dată după ce lecția e încărcată
+  const initYouTubePlayer = useCallback((videoId: string, startSeconds: number) => {
+    if (playerInitialized.current) return
+    playerInitialized.current = true
 
-    const initPlayer = () => {
-      if (!playerContainerRef.current) return
-      playerRef.current = new window.YT.Player(playerContainerRef.current, {
+    const doInit = () => {
+      if (!playerDivRef.current) return
+      playerRef.current = new window.YT.Player(playerDivRef.current, {
         videoId,
         playerVars: {
           rel: 0,
           modestbranding: 1,
-          start: lastPosition > 10 && status !== 'COMPLETED' ? Math.floor(lastPosition) : 0,
+          start: startSeconds > 10 ? Math.floor(startSeconds) : 0,
         },
         events: {
-          onReady: () => setPlayerReady(true),
           onStateChange: (event: any) => {
-            // 1 = playing, 2 = paused, 0 = ended
-            if (event.data === 1) {
-              // Incepe tracking
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              // Start interval tracking
               if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
               progressIntervalRef.current = setInterval(() => {
                 try {
                   const current = playerRef.current.getCurrentTime()
                   const duration = playerRef.current.getDuration()
-                  if (!duration) return
+                  if (!duration || duration <= 0) return
                   const percent = Math.min((current / duration) * 100, 100)
-                  setWatchedPercent(prev => Math.max(prev, percent))
-                  setLastPosition(current)
+                  // Actualizează UI
+                  setWatchedPercent(prev => {
+                    const newVal = Math.max(prev, percent)
+                    watchedPercentRef.current = newVal
+                    return newVal
+                  })
+                  // Schimbă status
                   if (statusRef.current === 'NOT_STARTED') {
+                    statusRef.current = 'IN_PROGRESS'
                     setStatus('IN_PROGRESS')
-                    saveProgress('IN_PROGRESS', percent, current)
                   }
+                  // Salvează la fiecare 10 secunde
+                  saveProgress(watchedPercentRef.current, current)
                 } catch (e) {}
-              }, 5000) // salvează la fiecare 5 secunde
-            } else if (event.data === 2) {
-              // Pauza — salvează imediat
+              }, 10000)
+
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
               if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
               try {
                 const current = playerRef.current.getCurrentTime()
                 const duration = playerRef.current.getDuration()
-                const percent = Math.min((current / duration) * 100, 100)
-                setWatchedPercent(prev => Math.max(prev, percent))
-                setLastPosition(current)
-                saveProgress('IN_PROGRESS', percent, current)
+                if (duration > 0) {
+                  const percent = Math.min((current / duration) * 100, 100)
+                  setWatchedPercent(prev => Math.max(prev, percent))
+                  saveProgress(Math.max(watchedPercentRef.current, percent), current)
+                }
               } catch (e) {}
-            } else if (event.data === 0) {
-              // Video terminat
+
+            } else if (event.data === window.YT.PlayerState.ENDED) {
               if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
               setWatchedPercent(100)
               setStatus('COMPLETED')
-              saveProgress('COMPLETED', 100, playerRef.current.getDuration?.() || 0)
+              statusRef.current = 'COMPLETED'
+              try {
+                const duration = playerRef.current.getDuration()
+                saveProgress(100, duration)
+              } catch (e) { saveProgress(100, 0) }
             }
           },
         },
@@ -151,68 +150,76 @@ export default function LessonPage() {
     }
 
     if (window.YT?.Player) {
-      initPlayer()
+      doInit()
     } else {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      document.head.appendChild(tag)
-      window.onYouTubeIframeAPIReady = initPlayer
+      // Încarcă API-ul dacă nu e deja
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script')
+        tag.src = 'https://www.youtube.com/iframe_api'
+        document.head.appendChild(tag)
+      }
+      window.onYouTubeIframeAPIReady = doInit
     }
-
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-      try { playerRef.current?.destroy?.() } catch (e) {}
-    }
-  }, [lesson, lastPosition])
+  }, [saveProgress])
 
   // Încarcă lecția
   useEffect(() => {
     fetch(`/api/courses/lessons/${lessonId}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
-        setLesson(d.data)
-        const prog = d.data?.progress?.[0]
+        const l = d.data
+        setLesson(l)
+        const prog = l?.progress?.[0]
         if (prog) {
           setStatus(prog.status)
           setWatchedPercent(prog.watchedPercent || 0)
-          setLastPosition(prog.lastPositionSeconds || 0)
-          // Arată dialogul de reluare dacă e în curs și a mai văzut > 10 secunde
+          watchedPercentRef.current = prog.watchedPercent || 0
+          statusRef.current = prog.status
+          savedPosition.current = prog.lastPositionSeconds || 0
           if (prog.status === 'IN_PROGRESS' && prog.lastPositionSeconds > 10) {
             setShowResumeDialog(true)
           }
         }
-        if (!d.data?.videoUrl && d.data?.pdfUrl) setActiveTab('pdf')
+        if (!l?.videoUrl && l?.pdfUrl) setActiveTab('pdf')
       })
       .finally(() => setLoading(false))
+
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      try { playerRef.current?.destroy?.() } catch (e) {}
+      playerInitialized.current = false
+    }
   }, [lessonId])
+
+  // Inițializează player după ce lecția e gata și div-ul e montat
+  useEffect(() => {
+    if (!lesson?.videoUrl || !playerDivRef.current) return
+    const videoId = extractYouTubeId(lesson.videoUrl)
+    if (!videoId) return
+    initYouTubePlayer(videoId, savedPosition.current)
+  }, [lesson, initYouTubePlayer])
 
   const markCompleted = async () => {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
     setStatus('COMPLETED')
     setWatchedPercent(100)
     setSaving(true)
-    try {
-      await saveProgress('COMPLETED', 100, lastPosition)
-    } finally { setSaving(false) }
+    try { await saveProgress(100, savedPosition.current) }
+    finally { setSaving(false) }
   }
 
-  const resumeFromPosition = () => {
-    setShowResumeDialog(false)
-    // Player-ul e deja inițializat cu start=lastPosition
-  }
+  const resumeFromPosition = () => setShowResumeDialog(false)
 
   const startFromBeginning = () => {
     setShowResumeDialog(false)
-    setLastPosition(0)
-    try { playerRef.current?.seekTo(0) } catch (e) {}
+    try { playerRef.current?.seekTo(0, true) } catch (e) {}
   }
 
   const moduleLessons = lesson?.module?.lessons || []
   const currentIndex = moduleLessons.findIndex(l => l.id === lessonId)
   const prevLesson = currentIndex > 0 ? moduleLessons[currentIndex - 1] : null
   const nextLesson = currentIndex < moduleLessons.length - 1 ? moduleLessons[currentIndex + 1] : null
-
-  const isYouTube = lesson?.videoUrl && extractYouTubeId(lesson.videoUrl)
+  const isYouTube = lesson?.videoUrl ? !!extractYouTubeId(lesson.videoUrl) : false
 
   if (loading) return (
     <div className="flex justify-center py-12">
@@ -220,12 +227,11 @@ export default function LessonPage() {
     </div>
   )
 
-  if (!lesson) return (
-    <div className="text-center py-12 text-gray-400">Lecția nu a fost găsită.</div>
-  )
+  if (!lesson) return <div className="text-center py-12 text-gray-400">Lecția nu a fost găsită.</div>
 
   return (
     <div className="space-y-6 max-w-4xl">
+
       {/* Dialog reluare */}
       {showResumeDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -238,12 +244,10 @@ export default function LessonPage() {
               <div className="h-full bg-aep-500 rounded-full" style={{ width: `${watchedPercent}%` }} />
             </div>
             <div className="flex gap-3">
-              <button onClick={startFromBeginning}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+              <button onClick={startFromBeginning} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
                 De la început
               </button>
-              <button onClick={resumeFromPosition}
-                className="flex-1 px-4 py-2 bg-aep-600 text-white rounded-lg text-sm hover:bg-aep-700">
+              <button onClick={resumeFromPosition} className="flex-1 px-4 py-2 bg-aep-600 text-white rounded-lg text-sm hover:bg-aep-700">
                 Continuă
               </button>
             </div>
@@ -302,9 +306,7 @@ export default function LessonPage() {
               style={{ width: `${watchedPercent}%` }}
             />
           </div>
-          {status === 'COMPLETED' && (
-            <p className="text-xs text-green-600 mt-2 font-medium">✓ Lecție finalizată</p>
-          )}
+          {status === 'COMPLETED' && <p className="text-xs text-green-600 mt-2 font-medium">✓ Lecție finalizată</p>}
         </div>
       )}
 
@@ -328,13 +330,12 @@ export default function LessonPage() {
 
           {activeTab === 'video' && lesson.videoUrl && (
             <div className="bg-black rounded-xl overflow-hidden aspect-video">
-              {isYouTube ? (
-                <div ref={playerContainerRef} className="w-full h-full" />
-              ) : (
-                <iframe src={lesson.videoUrl} className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen title={lesson.title} />
-              )}
+              {isYouTube
+                ? <div ref={playerDivRef} className="w-full h-full" />
+                : <iframe src={lesson.videoUrl} className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen title={lesson.title} />
+              }
             </div>
           )}
 
