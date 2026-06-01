@@ -29,11 +29,14 @@ export async function GET(_req: NextRequest, { params }: { params: { lessonId: s
           where: { published: true },
           select: { id: true, title: true, questionsPerAttempt: true, passingScore: true },
         },
+        progress: {
+          where: { userId: session.id },
+          select: { status: true, watchedPercent: true, lastPositionSeconds: true },
+        },
       },
     })
 
     if (!lesson) return notFound('Lecție inexistentă')
-
     return ok(lesson)
   } catch (err) {
     console.error('Lesson detail error:', err)
