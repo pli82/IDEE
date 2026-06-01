@@ -26,41 +26,72 @@ export async function GET(req: NextRequest) {
           },
         },
         test: { select: { title: true, passingScore: true } },
+        answers: {
+          include: {
+            question: { select: { text: true } },
+          },
+        },
       },
       orderBy: { startedAt: 'desc' },
     })
 
-    const rows = (attempts as any[]).map(a => ({
-      'Nume': a.user.profile?.nume || '—',
-      'Prenume': a.user.profile?.prenume || '—',
-      'Email': a.user.email,
-      'Județ': a.user.profile?.judetCode || '—',
-      'Test': a.test.title,
-      'Scor': a.score,
-      'Scor maxim': a.maxScore,
-      'Prag promovare': a.test.passingScore,
-      'Promovat': a.passed ? 'DA' : 'NU',
-      'Procent (%)': a.maxScore > 0 ? Math.round((a.score / a.maxScore) * 100) : 0,
-      'Data susținerii': a.submittedAt?.toISOString().split('T')[0] || '—',
-    }))
+    // Un rând per răspuns (întrebare)
+    const rows: any[] = []
+    for (const a of attempts as any[]) {
+      const nume = a.user.profile?.nume || '—'
+      const prenume = a.user.profile?.prenume || '—'
+      const email = a.user.email
+      const judet = a.user.profile?.judetCode || '—'
+      const test = a.test.title
+      const scor = a.score
+      const maxScor = a.maxScore
+      const promovat = a.passed ? 'DA' : 'NU'
+      const data = a.submittedAt?.toISOString().split('T')[0] || '—'
+
+      if (a.answers.length === 0) {
+        rows.push({ 'Nume': nume, 'Prenume': prenume, 'Email': email, 'Județ': judet, 'Test': test, 'Scor': `${scor}/${maxScor}`, 'Promovat': promovat, 'Data': data, 'Întrebare': '—', 'Răspuns': '—' })
+      } else {
+        for (const ans of a.answers) {
+          rows.push({
+            'Nume': nume,
+            'Prenume': prenume,
+            'Email': email,
+            'Județ': judet,
+            'Test': test,
+            'Scor': `${scor}/${maxScor}`,
+            'Promovat': promovat,
+            'Data': data,
+            'Întrebare': ans.question?.text || '—',
+            'Răspuns': ans.isCorrect ? 'CORECT' : 'GREȘIT',
+          })
+        }
+      }
+    }
 
     if (format === 'csv') {
-      if (rows.length === 0) return new NextResponse('\uFEFFNu există date', { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' } })
+      if (rows.length === 0) return new NextResponse('\uFEFFNu există date', {
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
+      })
       const headers = Object.keys(rows[0]).join(',')
       const csvRows = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       const csv = '\uFEFF' + [headers, ...csvRows].join('\n')
-      return new NextResponse(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' } })
+      return new NextResponse(csv, {
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
+      })
     }
 
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Rezultate Teste')
     if (rows.length > 0) {
-      sheet.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: 22 }))
+      sheet.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: key === 'Întrebare' ? 50 : 22 }))
       sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1a4480' } }
       sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
       rows.forEach((row, i) => {
         const r = sheet.addRow(row)
-        r.getCell('Promovat').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: row['Promovat'] === 'DA' ? 'FFd4edda' : 'FFf8d7da' } }
+        const isCorrect = row['Răspuns'] === 'CORECT'
+        const isWrong = row['Răspuns'] === 'GREȘIT'
+        if (isCorrect) r.getCell('Răspuns').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFd4edda' } }
+        if (isWrong) r.getCell('Răspuns').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf8d7da' } }
         if (i % 2 === 1) r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } }
       })
       sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + Object.keys(rows[0]).length)}1` }
@@ -69,7 +100,9 @@ export async function GET(req: NextRequest) {
       sheet.addRow(['Nu există date pentru perioada selectată'])
     }
     const buffer = await workbook.xlsx.writeBuffer()
-    return new NextResponse(buffer as any, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="rezultate_teste.xlsx"' } })
+    return new NextResponse(buffer as any, {
+      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="rezultate_teste.xlsx"' }
+    })
   } catch (e) {
     console.error('Tests report error:', e)
     return new NextResponse('Export failed: ' + String(e), { status: 500 })
