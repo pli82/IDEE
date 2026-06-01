@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
       orderBy: [{ test: { id: 'asc' } }, { startedAt: 'desc' }],
     })
 
-    if (attempts.length === 0) {
+if (attempts.length === 0) {
+      if (format === 'json') return NextResponse.json({ data: [] })
       const empty = '\uFEFFNu există date pentru perioada selectată'
       if (format === 'csv') return new NextResponse(empty, {
         headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
