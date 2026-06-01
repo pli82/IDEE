@@ -26,16 +26,22 @@ export async function GET(req: NextRequest) {
           },
         },
         test: { select: { id: true, title: true, passingScore: true } },
-        answers: {
-          include: {
-            question: { select: { id: true, text: true, order: true } },
-          },
-        },
+answers: true,
       },
       orderBy: [{ test: { id: 'asc' } }, { startedAt: 'desc' }],
     })
 
-if (attempts.length === 0) {
+// Obține textul întrebărilor separat (inclusiv cele șterse nu vor fi găsite)
+    const allAnsweredQuestionIds = [...new Set(
+      (attempts as any[]).flatMap(a => a.answers.map((ans: any) => ans.questionId))
+    )]
+    const existingQuestions = await prisma.question.findMany({
+      where: { id: { in: allAnsweredQuestionIds } },
+      select: { id: true, text: true, order: true },
+    })
+    const questionLookup = new Map(existingQuestions.map(q => [q.id, q]))
+
+    if (attempts.length === 0) {
       if (format === 'json') return NextResponse.json({ data: [] })
       const empty = '\uFEFFNu există date pentru perioada selectată'
       if (format === 'csv') return new NextResponse(empty, {
@@ -54,13 +60,14 @@ if (attempts.length === 0) {
     const questionMap = new Map<string, { text: string; order: number; deleted: boolean }>()
 
     for (const a of attempts as any[]) {
-      for (const ans of a.answers) {
+for (const ans of a.answers) {
         if (!questionMap.has(ans.questionId)) {
-          if (ans.question) {
+          const q = questionLookup.get(ans.questionId)
+          if (q) {
             // Întrebare există încă
-            questionMap.set(ans.questionId, {
-              text: ans.question.text,
-              order: ans.question.order ?? 0,
+questionMap.set(ans.questionId, {
+              text: q.text,
+              order: q.order ?? 0,
               deleted: false,
             })
           } else {
