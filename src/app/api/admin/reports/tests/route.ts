@@ -118,9 +118,9 @@ export async function GET(req: NextRequest) {
       rows.push(row)
     }
 
-    if (format === 'json') {
-      return Response.json({ data: rows })
-    }
+if (format === 'json') {
+  return NextResponse.json({ data: rows })
+}
 
     if (format === 'csv') {
       const headers = Object.keys(rows[0]).join(',')
