@@ -39,16 +39,7 @@ export default function DashboardPage() {
         <h1 className="text-xl font-bold">
           Bun venit{profile?.prenume ? `, ${profile.prenume}!` : '!'}
         </h1>
-        <p className="text-blue-100 mt-1 text-sm">
-          {profile?.profileComplete
-            ? 'Continuați pregătirea electorală'
-            : 'Completați profilul pentru a accesa materialele de instruire'}
-        </p>
-        {!profile?.profileComplete && (
-          <Link href="/profile/complete" className="mt-3 inline-flex items-center gap-2 bg-white text-aep-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50">
-            Completează profilul →
-          </Link>
-        )}
+<p className="text-blue-100 mt-1 text-sm">Continuați pregătirea electorală</p>
       </div>
 
       {/* Statistici progres */}
