@@ -67,10 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span key={n.href} className="text-sm font-medium text-gray-900">{n.icon} {n.label}</span>
             ))}
           </div>
-          <Link href="/api/auth/logout"
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-            Ieșire
-          </Link>
+          <button
+  onClick={async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    window.location.href = '/auth/login'
+  }}
+  className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+  Ieșire
+</button>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           {children}
