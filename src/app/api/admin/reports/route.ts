@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/admin/reports/route.ts - Rapoarte și exporturi admin
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, isAdmin } from '@/lib/auth'
