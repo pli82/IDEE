@@ -11,16 +11,16 @@ const config: Config = {
     extend: {
       colors: {
         aep: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#1a5fa8',
-          700: '#1e40af',
-          800: '#1e3a8a',
-          900: '#1e3461',
+          50:  '#e6f0f8',
+          100: '#cce0f1',
+          200: '#99c2e3',
+          300: '#66a3d5',
+          400: '#3385c7',
+          500: '#0066b9',
+          600: '#004B87',
+          700: '#003d6e',
+          800: '#002e55',
+          900: '#001f3c',
         },
         success: {
           50:  '#f0fdf4',
@@ -44,7 +44,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Aptos Display', 'Segoe UI', 'Calibri', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
