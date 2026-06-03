@@ -3,9 +3,9 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 
 interface Category { id: string; title: string; slug: string; description?: string; published: boolean; order: number; _count: { modules: number } }
 interface Module { id: string; title: string; description?: string; published: boolean; categoryId: string; category: { title: string }; _count: { lessons: number } }
-interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; pdfUrl?: string; order: number; minWatchPercentForTest: number }
+interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; pdfUrl?: string; externalUrl?: string; order: number; minWatchPercentForTest: number }
 
-const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', pdfUrl: '', minWatchPercentForTest: 0 }
+const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', pdfUrl: '', externalUrl: '', minWatchPercentForTest: 0 }
 const apiFetch = (url: string, options: RequestInit = {}) => fetch(url, { ...options, credentials: 'include' })
 
 function ColumnDropdown({ label, children }: { label: string; children: React.ReactNode }) {
@@ -119,7 +119,7 @@ export default function AdminContent() {
   const openAdd = () => { setEditItem(null); setFormData(emptyForm); setError(''); setShowForm(true) }
   const openEdit = (item: any) => {
     setEditItem(item)
-    setFormData({ title: item.title || '', slug: item.slug || '', description: item.description || '', order: item.order || 0, published: item.published || false, categoryId: item.categoryId || '', moduleId: item.moduleId || '', videoUrl: item.videoUrl || '', pdfUrl: item.pdfUrl || '', minWatchPercentForTest: item.minWatchPercentForTest || 0 })
+    setFormData({ title: item.title || '', slug: item.slug || '', description: item.description || '', order: item.order || 0, published: item.published || false, categoryId: item.categoryId || '', moduleId: item.moduleId || '', videoUrl: item.videoUrl || '', pdfUrl: item.pdfUrl || '', externalUrl: item.externalUrl || '', minWatchPercentForTest: item.minWatchPercentForTest || 0 })
     setError(''); setShowForm(true)
   }
 
@@ -128,7 +128,7 @@ export default function AdminContent() {
     const method = editItem ? 'PUT' : 'POST'
     const url = editItem ? `/api/admin/content?resource=${tab}&id=${editItem.id}` : `/api/admin/content?resource=${tab}`
     let body: any = { ...formData }
-    if (tab === 'lessons') body = { title: formData.title, description: formData.description, moduleId: formData.moduleId, videoUrl: formData.videoUrl || null, pdfUrl: formData.pdfUrl || null, order: formData.order, published: formData.published, minWatchPercentForTest: formData.minWatchPercentForTest }
+    if (tab === 'lessons') body = { title: formData.title, description: formData.description, moduleId: formData.moduleId, videoUrl: formData.videoUrl || null, pdfUrl: formData.pdfUrl || null, externalUrl: formData.externalUrl || null, order: formData.order, published: formData.published, minWatchPercentForTest: formData.minWatchPercentForTest }
     const r = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const d = await r.json()
     if (!r.ok) { setError(d.error || 'Eroare la salvare'); return }
@@ -364,6 +364,12 @@ export default function AdminContent() {
                   <label className="block text-xs text-gray-600 mb-1">📄 URL Suport de curs (PDF)</label>
                   <input type="url" placeholder="https://drive.google.com/file/d/.../preview" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     value={formData.pdfUrl} onChange={e => setFormData(p => ({ ...p, pdfUrl: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">🔗 Link extern (opțional)</label>
+                  <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    value={formData.externalUrl} onChange={e => setFormData(p => ({ ...p, externalUrl: e.target.value }))} />
+                  <p className="text-xs text-gray-400 mt-1">Link opțional afișat pe pagina lecției</p>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">% minim vizionare pentru test (0 = fără restricție)</label>
