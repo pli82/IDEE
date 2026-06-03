@@ -45,8 +45,7 @@ export default function DashboardPage() {
         <h1 className="text-xl font-bold">
           Bun venit{profile?.prenume ? `, ${profile.prenume}!` : '!'}
         </h1>
-        <p className="text-blue-100 mt-1 text-sm">Continuați pregătirea electorală</p>
-        <p className="text-blue-200 mt-0.5 text-sm">Continuă să înveți și să progresezi!</p>
+        <p className="text-blue-200 mt-1 text-sm">Continuă să înveți și să progresezi!</p>
       </div>
 
       {/* Statistici progres */}
