@@ -1,15 +1,7 @@
-'use client'
-import { useRouter } from 'next/navigation'
-
 export default function TermeniUtilizare() {
-  const router = useRouter()
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <button onClick={() => router.back()}
-          className="flex items-center gap-2 text-sm text-aep-600 hover:text-aep-700 mb-6">
-          ← Înapoi
-        </button>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Termeni de utilizare</h1>
         <div className="prose prose-sm text-gray-700 space-y-4">
           <p>Prin utilizarea platformei AEP Instruire Online, acceptați termenii și condițiile de mai jos.</p>
