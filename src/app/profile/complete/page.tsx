@@ -7,7 +7,7 @@ const STUDII_OPTIONS = ['Liceale', 'Postliceale', 'Universitare (licență)', 'M
 
 export default function ProfileCompletePage() {
   const router = useRouter()
-  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', serieCI: '', numarCI: '', dataExpirareCI: '', gdprConsent: false })
+  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', gdprConsent: false })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -20,6 +20,7 @@ export default function ProfileCompletePage() {
     const r = await fetch('/api/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(form),
     })
     const d = await r.json()
@@ -29,11 +30,11 @@ export default function ProfileCompletePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aep-700 to-aep-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-aep-600 to-aep-900 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-xl shadow-lg mb-3">
-            <span className="text-aep-700 font-bold">AEP</span>
+            <span className="text-aep-600 font-bold">AEP</span>
           </div>
           <h1 className="text-xl font-bold text-white">Completați profilul</h1>
           <p className="text-blue-200 text-sm mt-1">Datele sunt necesare pentru accesul la materialele de instruire</p>
@@ -78,24 +79,6 @@ export default function ProfileCompletePage() {
               </div>
             </div>
 
-            <fieldset className="border border-gray-200 rounded-lg p-4">
-              <legend className="text-sm font-medium text-gray-700 px-2">Date carte de identitate (opțional)</legend>
-              <div className="grid grid-cols-3 gap-3 mt-2">
-                <div>
-                  <label className="text-xs text-gray-600 block mb-1">Serie CI</label>
-                  <input className="input" value={form.serieCI} onChange={e => fi('serieCI', e.target.value.toUpperCase())} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600 block mb-1">Număr CI</label>
-                  <input className="input" value={form.numarCI} onChange={e => fi('numarCI', e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600 block mb-1">Data expirare</label>
-                  <input type="date" className="input" value={form.dataExpirareCI} onChange={e => fi('dataExpirareCI', e.target.value)} />
-                </div>
-              </div>
-            </fieldset>
-
             <div className="bg-blue-50 rounded-lg p-4">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" required className="mt-0.5 flex-shrink-0"
@@ -104,8 +87,7 @@ export default function ProfileCompletePage() {
                   Sunt de acord cu prelucrarea datelor cu caracter personal în conformitate cu{' '}
                   <a href="/politica-confidentialitate" target="_blank" className="text-aep-600 hover:underline font-medium">
                     Politica de confidențialitate
-                  </a>{' '}
-                  a Autorității Electorale Permanente. *
+                  </a>. *
                 </span>
               </label>
             </div>
