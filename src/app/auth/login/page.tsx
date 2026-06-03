@@ -34,7 +34,7 @@ function LoginForm() {
             <span className="text-aep-700 font-bold text-xl">AEP</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Instruire Online</h1>
-          <p className="text-blue-200 text-sm mt-1">Autoritatea Electorală Permanentă</p>
+          <p className="text-blue-200 text-sm mt-1">Conectează-te pentru a continua călătoria ta educațională</p>
         </div>
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Autentificare</h2>
