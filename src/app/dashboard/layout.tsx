@@ -44,7 +44,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="text-aep-600 font-bold text-xs">AEP</span>
               </div>
               <div className="hidden sm:block">
-                <p className="text-xs text-blue-200 leading-none">Autoritatea Electorală Permanentă</p>
                 <p className="text-sm font-semibold leading-none">Instruire Online</p>
               </div>
             </Link>
@@ -95,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <footer className="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} Autoritatea Electorală Permanentă · 
+        © {new Date().getFullYear()} AEP · 
         <Link href="/politica-confidentialitate" className="hover:text-gray-600 ml-1">Politică de confidențialitate</Link>
       </footer>
     </div>
