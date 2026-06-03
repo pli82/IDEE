@@ -44,11 +44,11 @@ function wrapEmail(title: string, body: string): string {
   <div class="container">
     <div class="header">
       <h1>AEP Instruire Online</h1>
-      <p>Autoritatea Electorală Permanentă</p>
+      <p>AEP</p>
     </div>
     <div class="body">${body}</div>
     <div class="footer">
-      <p>Autoritatea Electorală Permanentă · <a href="${BASE_URL}">aep.ro</a></p>
+      <p>AEP · <a href="${BASE_URL}">aep.ro</a></p>
       <p>Nu răspundeți la acest email. Dacă nu ați inițiat această acțiune, ignorați mesajul.</p>
     </div>
   </div>
