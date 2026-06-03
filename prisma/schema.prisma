@@ -316,6 +316,7 @@ model AttemptAnswer {
   selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
   isCorrect        Boolean   @default(false)
   points           Int       @default(0)
+  questionText     String?
 
   @@map("attempt_answers")
 }
