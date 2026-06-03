@@ -94,4 +94,68 @@ export default function RegisterPage() {
                     <button type="button" onClick={() => setShowPassword(s => !s)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
                       {showPassword ? '🙈' : '👁️'}
-                    </but
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Calitate *</label>
+                  <select required className="input"
+                    value={form.calitate}
+                    onChange={e => setForm(p => ({ ...p, calitate: e.target.value }))}>
+                    <option value="">Selectează calitatea deținută</option>
+                    {CALITATE_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-gray-600">
+                  <input type="checkbox" required className="mt-0.5 flex-shrink-0" id="gdpr" />
+                  <label htmlFor="gdpr">
+                    Sunt de acord cu{' '}
+                    <Link href="/termeni-utilizare" target="_blank" className="text-aep-600 hover:underline">Termenii de utilizare</Link>
+                    {' '}și{' '}
+                    <Link href="/politica-confidentialitate" target="_blank" className="text-aep-600 hover:underline">Politica de confidențialitate</Link>
+                  </label>
+                </div>
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
+                <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
+                  {loading ? 'Se creează contul...' : 'Creează cont'}
+                </button>
+              </form>
+
+              {/* Chenar informativ */}
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
+                După completarea corectă a datelor, vei primi un e-mail de confirmare necesar pentru activarea contului.
+              </div>
+
+              <p className="mt-4 text-center text-sm text-gray-500">
+                Ai deja cont?{' '}
+                <Link href="/auth/login" className="text-aep-600 font-medium hover:underline">Autentificare</Link>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Verificare email</h2>
+              <p className="text-gray-500 text-sm mb-6">
+                Am trimis un cod de 6 cifre la <strong>{form.email}</strong>. Introduceți-l mai jos:
+              </p>
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <input type="text" required maxLength={6} pattern="[0-9]{6}"
+                  className="input text-center text-2xl tracking-widest font-bold"
+                  placeholder="000000" value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
+                <button type="submit" disabled={loading || otp.length !== 6} className="btn-primary w-full justify-center">
+                  {loading ? 'Se verifică...' : 'Verifică codul'}
+                </button>
+              </form>
+              <button onClick={() => setStep('form')} className="mt-4 w-full text-center text-sm text-gray-400 hover:text-gray-600">
+                ← Înapoi la formular
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
