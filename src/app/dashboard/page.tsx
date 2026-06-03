@@ -15,9 +15,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/profile').then(r => r.json()),
-      fetch('/api/progress').then(r => r.json()),
-      fetch('/api/events?limit=5').then(r => r.json()),
+      fetch('/api/profile', { credentials: 'include' }).then(r => r.json()),
+      fetch('/api/progress', { credentials: 'include' }).then(r => r.json()),
+      fetch('/api/events?limit=5', { credentials: 'include' }).then(r => r.json()),
     ]).then(([profileRes, progressRes, eventsRes]) => {
       const profile = profileRes.data
       const stats = progressRes.data || {}
@@ -26,35 +26,49 @@ export default function DashboardPage() {
     }).finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-aep-600" /></div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-aep-600" />
+    </div>
+  )
 
   const profile = data?.user?.profile
   const stats = data?.stats
-  const completionPct = stats && stats.totalLessons > 0 ? Math.round((stats.completedLessons / stats.totalLessons) * 100) : 0
+  const completionPct = stats && stats.totalLessons > 0
+    ? Math.round((stats.completedLessons / stats.totalLessons) * 100)
+    : 0
 
   return (
     <div className="space-y-6">
-      {/* Salut */}
+      {/* Bun venit */}
       <div className="bg-gradient-to-r from-aep-600 to-aep-700 rounded-xl p-6 text-white">
         <h1 className="text-xl font-bold">
           Bun venit{profile?.prenume ? `, ${profile.prenume}!` : '!'}
         </h1>
-<p className="text-blue-100 mt-1 text-sm">Continuați pregătirea electorală</p>
+        <p className="text-blue-100 mt-1 text-sm">Continuați pregătirea electorală</p>
+        <p className="text-blue-200 mt-0.5 text-sm">Continuă să înveți și să progresezi!</p>
       </div>
 
       {/* Statistici progres */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Lecții finalizate', value: `${stats?.completedLessons || 0}/${stats?.totalLessons || 0}`, color: 'text-aep-600' },
-          { label: 'Progres total', value: `${completionPct}%`, color: 'text-aep-600' },
-          { label: 'Teste promovate', value: stats?.passedTests || 0, color: 'text-success-600' },
-          { label: 'Teste nepromovate', value: stats?.failedTests || 0, color: 'text-red-500' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm text-center">
+          <div className="text-2xl font-bold text-blue-700">
+            {stats?.completedLessons || 0}/{stats?.totalLessons || 0}
           </div>
-        ))}
+          <div className="text-xs text-blue-600 mt-1">Lecții finalizate</div>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm text-center">
+          <div className="text-2xl font-bold text-green-700">{completionPct}%</div>
+          <div className="text-xs text-green-600 mt-1">Progres total</div>
+        </div>
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 shadow-sm text-center">
+          <div className="text-2xl font-bold text-orange-600">{stats?.passedTests || 0}</div>
+          <div className="text-xs text-orange-500 mt-1">Teste promovate</div>
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 shadow-sm text-center">
+          <div className="text-2xl font-bold text-purple-600">{stats?.failedTests || 0}</div>
+          <div className="text-xs text-purple-500 mt-1">Teste nepromovate</div>
+        </div>
       </div>
 
       {/* Bară progres */}
@@ -65,7 +79,8 @@ export default function DashboardPage() {
             <span className="text-aep-600 font-bold">{completionPct}%</span>
           </div>
           <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-aep-500 to-aep-600 rounded-full transition-all" style={{ width: `${completionPct}%` }} />
+            <div className="h-full bg-gradient-to-r from-aep-500 to-aep-600 rounded-full transition-all"
+              style={{ width: `${completionPct}%` }} />
           </div>
         </div>
       )}
@@ -75,21 +90,24 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-900 mb-4">Acces rapid</h2>
           <div className="space-y-2">
-            <Link href="/dashboard/courses" className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
+            <Link href="/dashboard/courses"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
               <span className="text-2xl">📚</span>
               <div>
                 <div className="font-medium text-gray-800 group-hover:text-aep-700 text-sm">Materiale de instruire</div>
                 <div className="text-xs text-gray-400">Accesați lecțiile video și PDF</div>
               </div>
             </Link>
-            <Link href="/dashboard/calendar" className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
+            <Link href="/dashboard/calendar"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
               <span className="text-2xl">📅</span>
               <div>
                 <div className="font-medium text-gray-800 group-hover:text-aep-700 text-sm">Calendar instruiri</div>
                 <div className="text-xs text-gray-400">Consultați evenimentele din județ</div>
               </div>
             </Link>
-            <Link href="/dashboard/progress" className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
+            <Link href="/dashboard/progress"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-aep-50 transition-colors group">
               <span className="text-2xl">📊</span>
               <div>
                 <div className="font-medium text-gray-800 group-hover:text-aep-700 text-sm">Progresul meu</div>
@@ -111,7 +129,9 @@ export default function DashboardPage() {
                   <span className="text-lg mt-0.5">📅</span>
                   <div className="min-w-0">
                     <div className="font-medium text-gray-800 text-sm truncate">{ev.title}</div>
-                    <div className="text-xs text-gray-500">{new Date(ev.startAt).toLocaleDateString('ro', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(ev.startAt).toLocaleDateString('ro', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </div>
                     {ev.county && <div className="text-xs text-aep-600 mt-0.5">{ev.county.name}</div>}
                   </div>
                 </div>
