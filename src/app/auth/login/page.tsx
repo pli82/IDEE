@@ -48,9 +48,15 @@ const [loading, setLoading] = useState(false)
             </div>
             <div>
               <label className="label">Parolă *</label>
-              <input type="password" required autoComplete="current-password" className="input"
-                placeholder="Parola dvs." value={form.password}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+              <div className="relative">
+  <input type={showPassword ? 'text' : 'password'} required autoComplete="current-password" className="input pr-10"
+    placeholder="Parola dvs." value={form.password}
+    onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+  <button type="button" onClick={() => setShowPassword(s => !s)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+    {showPassword ? '🙈' : '👁️'}
+  </button>
+</div>
             </div>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm" role="alert">
