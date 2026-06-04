@@ -7,8 +7,9 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+const [showPassword, setShowPassword] = useState(false)
+const [error, setError] = useState('')
+const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
