@@ -27,8 +27,7 @@ function StatsTimeline({ stats, completionPct }: {
         boxShadow: 'inset -3px -3px 8px rgba(0,50,120,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(0,80,160,0.22)',
       },
       dotStyle: { background: 'linear-gradient(145deg, #5aaae0, #1a7cc0)' },
-      marginBottom: '0px',
-      stemHeight: '160px',
+      stemHeight: '40px',
       title: 'Lecții finalizate',
       desc: 'Numărul total de lecții parcurse din curriculum',
     },
@@ -45,8 +44,7 @@ function StatsTimeline({ stats, completionPct }: {
         boxShadow: 'inset -3px -3px 8px rgba(150,90,0,0.25), inset 2px 2px 6px rgba(255,255,255,0.5), 2px 4px 8px rgba(180,130,0,0.22)',
       },
       dotStyle: { background: 'linear-gradient(145deg, #fde060, #d4a000)' },
-      marginBottom: '60px',
-      stemHeight: '100px',
+      stemHeight: '80px',
       title: 'Progres total',
       desc: 'Procentul de completare al cursului tău',
     },
@@ -63,8 +61,7 @@ function StatsTimeline({ stats, completionPct }: {
         boxShadow: 'inset -3px -3px 8px rgba(0,80,30,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(0,120,40,0.22)',
       },
       dotStyle: { background: 'linear-gradient(145deg, #5ec885, #1a9a50)' },
-      marginBottom: '110px',
-      stemHeight: '50px',
+      stemHeight: '120px',
       title: 'Teste promovate',
       desc: 'Testele finalizate cu succes până acum',
     },
@@ -81,8 +78,7 @@ function StatsTimeline({ stats, completionPct }: {
         boxShadow: 'inset -3px -3px 8px rgba(130,20,20,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(180,30,30,0.22)',
       },
       dotStyle: { background: 'linear-gradient(145deg, #f07070, #c02020)' },
-      marginBottom: '30px',
-      stemHeight: '130px',
+      stemHeight: '160px',
       title: 'Teste nepromovate',
       desc: 'Testele care necesită o nouă încercare',
     },
@@ -91,19 +87,16 @@ function StatsTimeline({ stats, completionPct }: {
   return (
     <div style={{ background: '#f4f7fa', borderRadius: '16px', padding: '2rem 1.5rem 1.5rem', border: '1px solid #dde4ec' }}>
       {/* Cards row */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '280px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '300px' }}>
         {items.map((item, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '155px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: item.marginBottom }}>
-              {/* Outer card */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0px' }}>
               <div style={{ width: '120px', height: '120px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', ...item.outerStyle }}>
-                {/* Inner card */}
                 <div style={{ width: '100%', height: '100%', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', ...item.innerStyle }}>
                   <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.95)' }} />
                   <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff', lineHeight: 1, textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>{item.value}</span>
                 </div>
               </div>
-              {/* Stem */}
               <div style={{ width: '3px', height: item.stemHeight, background: 'linear-gradient(to bottom, #c8d8e8, #a0b8cc)', flexShrink: 0 }} />
             </div>
           </div>
