@@ -9,6 +9,153 @@ interface DashboardData {
   upcomingEvents: { id: string; title: string; startAt: string; county: any }[]
 }
 
+function StatsTimeline({ stats, completionPct }: {
+  stats: { totalLessons: number; completedLessons: number; passedTests: number; failedTests: number } | undefined
+  completionPct: number
+}) {
+  const items = [
+    {
+      value: `${stats?.completedLessons || 0}/${stats?.totalLessons || 0}`,
+      icon: '📚',
+      color: '#00aaff',
+      dotClass: 'td-blue',
+      circleClass: 'ic-blue',
+      marginBottom: '0px',
+      stemHeight: '130px',
+      title: 'Lecții finalizate',
+      desc: 'Numărul total de lecții parcurse din curriculum',
+    },
+    {
+      value: `${completionPct}%`,
+      icon: '📊',
+      color: '#00cc6a',
+      dotClass: 'td-green',
+      circleClass: 'ic-green',
+      marginBottom: '50px',
+      stemHeight: '80px',
+      title: 'Progres total',
+      desc: 'Procentul de completare al cursului tău',
+    },
+    {
+      value: String(stats?.passedTests || 0),
+      icon: '✅',
+      color: '#ff6b00',
+      dotClass: 'td-orange',
+      circleClass: 'ic-orange',
+      marginBottom: '90px',
+      stemHeight: '40px',
+      title: 'Teste promovate',
+      desc: 'Testele finalizate cu succes până acum',
+    },
+    {
+      value: String(stats?.failedTests || 0),
+      icon: '❌',
+      color: '#f5a800',
+      dotClass: 'td-gold',
+      circleClass: 'ic-gold',
+      marginBottom: '25px',
+      stemHeight: '105px',
+      title: 'Teste nepromovate',
+      desc: 'Testele care necesită o nouă încercare',
+    },
+  ]
+
+  return (
+    <div style={{
+      background: '#f0f4f8',
+      borderRadius: '16px',
+      padding: '2rem 1rem 1.5rem',
+      overflow: 'hidden',
+    }}>
+      {/* Bubbles row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: 0,
+        position: 'relative',
+        height: '260px',
+      }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '155px', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: item.marginBottom }}>
+              {/* Outer ring */}
+              <div style={{
+                width: '130px', height: '130px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.55)',
+                border: '2px solid rgba(200,210,225,0.7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '4px 4px 12px rgba(0,0,0,0.13), -2px -2px 8px rgba(255,255,255,0.8)',
+              }}>
+                {/* Inner circle */}
+                <div style={{
+                  width: '100px', height: '100px', borderRadius: '50%',
+                  background: item.color,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '-4px -4px 8px rgba(255,255,255,0.7), 4px 4px 10px rgba(0,0,0,0.28), inset 2px 2px 4px rgba(255,255,255,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)',
+                }}>
+                  <span style={{ fontSize: '22px', marginBottom: '2px' }}>{item.icon}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0d2e52', lineHeight: 1 }}>{item.value}</span>
+                </div>
+              </div>
+              {/* Stem */}
+              <div style={{
+                width: '3px',
+                height: item.stemHeight,
+                background: 'linear-gradient(to bottom, #b0bec5, #90a4ae)',
+                flexShrink: 0,
+              }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Track row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', height: '28px' }}>
+        {/* Track line */}
+        <div style={{
+          height: '6px',
+          background: 'linear-gradient(to right, #cfd8dc, #b0bec5)',
+          borderRadius: '3px',
+          width: '620px',
+          position: 'absolute',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.15), 0 -1px 2px rgba(255,255,255,0.6)',
+        }} />
+        {/* Dots */}
+        <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 1, width: '620px' }}>
+          {items.map((item, i) => (
+            <div key={i} style={{ width: '155px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                width: '22px', height: '22px', borderRadius: '50%',
+                background: item.color,
+                border: '3px solid white',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                zIndex: 2,
+              }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Labels row */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ width: '155px', textAlign: 'center', padding: '0 6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0d2e52', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+              {item.title}
+            </div>
+            <div style={{ fontSize: '11px', color: '#4a6080', lineHeight: 1.4 }}>
+              {item.desc}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -48,27 +195,8 @@ export default function DashboardPage() {
         <p className="text-blue-200 mt-1 text-sm">Continuă să înveți și să progresezi!</p>
       </div>
 
-      {/* Statistici progres */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-blue-700">
-            {stats?.completedLessons || 0}/{stats?.totalLessons || 0}
-          </div>
-          <div className="text-xs text-blue-600 mt-1">Lecții finalizate</div>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-green-700">{completionPct}%</div>
-          <div className="text-xs text-green-600 mt-1">Progres total</div>
-        </div>
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-orange-600">{stats?.passedTests || 0}</div>
-          <div className="text-xs text-orange-500 mt-1">Teste promovate</div>
-        </div>
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-purple-600">{stats?.failedTests || 0}</div>
-          <div className="text-xs text-purple-500 mt-1">Teste nepromovate</div>
-        </div>
-      </div>
+      {/* Infografic statistici */}
+      <StatsTimeline stats={stats} completionPct={completionPct} />
 
       {/* Bară progres */}
       {stats && stats.totalLessons > 0 && (
