@@ -16,139 +16,118 @@ function StatsTimeline({ stats, completionPct }: {
   const items = [
     {
       value: `${stats?.completedLessons || 0}/${stats?.totalLessons || 0}`,
-      icon: '📚',
-      color: '#00aaff',
-      dotClass: 'td-blue',
-      circleClass: 'ic-blue',
+      icon: 'ti-book',
+      outerStyle: {
+        background: 'linear-gradient(145deg, #e8f4fd, #b8d9f5)',
+        border: '1.5px solid #8fc8f0',
+        boxShadow: '5px 7px 16px rgba(0,80,160,0.18), -3px -3px 10px rgba(255,255,255,0.95)',
+      },
+      innerStyle: {
+        background: 'linear-gradient(145deg, #5aaae0, #1a7cc0)',
+        boxShadow: 'inset -3px -3px 8px rgba(0,50,120,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(0,80,160,0.22)',
+      },
+      dotStyle: { background: 'linear-gradient(145deg, #5aaae0, #1a7cc0)' },
       marginBottom: '0px',
-      stemHeight: '130px',
+      stemHeight: '160px',
       title: 'Lecții finalizate',
       desc: 'Numărul total de lecții parcurse din curriculum',
     },
     {
       value: `${completionPct}%`,
-      icon: '📊',
-      color: '#00cc6a',
-      dotClass: 'td-green',
-      circleClass: 'ic-green',
-      marginBottom: '50px',
-      stemHeight: '80px',
+      icon: 'ti-chart-bar',
+      outerStyle: {
+        background: 'linear-gradient(145deg, #fef9e7, #fde9a0)',
+        border: '1.5px solid #fbd660',
+        boxShadow: '5px 7px 16px rgba(180,130,0,0.15), -3px -3px 10px rgba(255,255,255,0.95)',
+      },
+      innerStyle: {
+        background: 'linear-gradient(145deg, #fde060, #d4a000)',
+        boxShadow: 'inset -3px -3px 8px rgba(150,90,0,0.25), inset 2px 2px 6px rgba(255,255,255,0.5), 2px 4px 8px rgba(180,130,0,0.22)',
+      },
+      dotStyle: { background: 'linear-gradient(145deg, #fde060, #d4a000)' },
+      marginBottom: '60px',
+      stemHeight: '100px',
       title: 'Progres total',
       desc: 'Procentul de completare al cursului tău',
     },
     {
       value: String(stats?.passedTests || 0),
-      icon: '✅',
-      color: '#ff6b00',
-      dotClass: 'td-orange',
-      circleClass: 'ic-orange',
-      marginBottom: '90px',
-      stemHeight: '40px',
+      icon: 'ti-circle-check',
+      outerStyle: {
+        background: 'linear-gradient(145deg, #eaf6ec, #b8e5bf)',
+        border: '1.5px solid #8ed49a',
+        boxShadow: '5px 7px 16px rgba(0,120,40,0.15), -3px -3px 10px rgba(255,255,255,0.95)',
+      },
+      innerStyle: {
+        background: 'linear-gradient(145deg, #5ec885, #1a9a50)',
+        boxShadow: 'inset -3px -3px 8px rgba(0,80,30,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(0,120,40,0.22)',
+      },
+      dotStyle: { background: 'linear-gradient(145deg, #5ec885, #1a9a50)' },
+      marginBottom: '110px',
+      stemHeight: '50px',
       title: 'Teste promovate',
       desc: 'Testele finalizate cu succes până acum',
     },
     {
       value: String(stats?.failedTests || 0),
-      icon: '❌',
-      color: '#f5a800',
-      dotClass: 'td-gold',
-      circleClass: 'ic-gold',
-      marginBottom: '25px',
-      stemHeight: '105px',
+      icon: 'ti-circle-x',
+      outerStyle: {
+        background: 'linear-gradient(145deg, #fdecea, #f9bfba)',
+        border: '1.5px solid #f49090',
+        boxShadow: '5px 7px 16px rgba(180,40,30,0.15), -3px -3px 10px rgba(255,255,255,0.95)',
+      },
+      innerStyle: {
+        background: 'linear-gradient(145deg, #f07070, #c02020)',
+        boxShadow: 'inset -3px -3px 8px rgba(130,20,20,0.3), inset 2px 2px 6px rgba(255,255,255,0.35), 2px 4px 8px rgba(180,30,30,0.22)',
+      },
+      dotStyle: { background: 'linear-gradient(145deg, #f07070, #c02020)' },
+      marginBottom: '30px',
+      stemHeight: '130px',
       title: 'Teste nepromovate',
       desc: 'Testele care necesită o nouă încercare',
     },
   ]
 
   return (
-    <div style={{
-      background: '#f0f4f8',
-      borderRadius: '16px',
-      padding: '2rem 1rem 1.5rem',
-      overflow: 'hidden',
-    }}>
-      {/* Bubbles row */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        gap: 0,
-        position: 'relative',
-        height: '260px',
-      }}>
+    <div style={{ background: '#f4f7fa', borderRadius: '16px', padding: '2rem 1.5rem 1.5rem', border: '1px solid #dde4ec' }}>
+      {/* Cards row */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '280px' }}>
         {items.map((item, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '155px', position: 'relative' }}>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '155px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: item.marginBottom }}>
-              {/* Outer ring */}
-              <div style={{
-                width: '130px', height: '130px', borderRadius: '50%',
-                background: 'rgba(255,255,255,0.55)',
-                border: '2px solid rgba(200,210,225,0.7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '4px 4px 12px rgba(0,0,0,0.13), -2px -2px 8px rgba(255,255,255,0.8)',
-              }}>
-                {/* Inner circle */}
-                <div style={{
-                  width: '100px', height: '100px', borderRadius: '50%',
-                  background: item.color,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '-4px -4px 8px rgba(255,255,255,0.7), 4px 4px 10px rgba(0,0,0,0.28), inset 2px 2px 4px rgba(255,255,255,0.5), inset -2px -2px 4px rgba(0,0,0,0.2)',
-                }}>
-                  <span style={{ fontSize: '22px', marginBottom: '2px' }}>{item.icon}</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0d2e52', lineHeight: 1 }}>{item.value}</span>
+              {/* Outer card */}
+              <div style={{ width: '120px', height: '120px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', ...item.outerStyle }}>
+                {/* Inner card */}
+                <div style={{ width: '100%', height: '100%', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', ...item.innerStyle }}>
+                  <i className={`ti ${item.icon}`} aria-hidden="true" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.95)' }} />
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff', lineHeight: 1, textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>{item.value}</span>
                 </div>
               </div>
               {/* Stem */}
-              <div style={{
-                width: '3px',
-                height: item.stemHeight,
-                background: 'linear-gradient(to bottom, #b0bec5, #90a4ae)',
-                flexShrink: 0,
-              }} />
+              <div style={{ width: '3px', height: item.stemHeight, background: 'linear-gradient(to bottom, #c8d8e8, #a0b8cc)', flexShrink: 0 }} />
             </div>
           </div>
         ))}
       </div>
 
-      {/* Track row */}
+      {/* Track */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', height: '28px' }}>
-        {/* Track line */}
-        <div style={{
-          height: '6px',
-          background: 'linear-gradient(to right, #cfd8dc, #b0bec5)',
-          borderRadius: '3px',
-          width: '620px',
-          position: 'absolute',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.15), 0 -1px 2px rgba(255,255,255,0.6)',
-        }} />
-        {/* Dots */}
+        <div style={{ height: '7px', background: 'linear-gradient(to right, #dde8f2, #b0c8dc)', borderRadius: '4px', width: '620px', position: 'absolute', top: '50%', transform: 'translateY(-50%)', boxShadow: '0 3px 5px rgba(0,0,0,0.1), inset 0 1px 3px rgba(255,255,255,0.8)' }} />
         <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 1, width: '620px' }}>
           {items.map((item, i) => (
             <div key={i} style={{ width: '155px', display: 'flex', justifyContent: 'center' }}>
-              <div style={{
-                width: '22px', height: '22px', borderRadius: '50%',
-                background: item.color,
-                border: '3px solid white',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                zIndex: 2,
-              }} />
+              <div style={{ width: '22px', height: '22px', borderRadius: '6px', border: '3px solid #f4f7fa', boxShadow: '2px 3px 6px rgba(0,0,0,0.16), inset -1px -1px 3px rgba(0,0,0,0.12), inset 1px 1px 3px rgba(255,255,255,0.6)', zIndex: 2, ...item.dotStyle }} />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Labels row */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
+      {/* Labels */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
         {items.map((item, i) => (
           <div key={i} style={{ width: '155px', textAlign: 'center', padding: '0 6px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0d2e52', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
-              {item.title}
-            </div>
-            <div style={{ fontSize: '11px', color: '#4a6080', lineHeight: 1.4 }}>
-              {item.desc}
-            </div>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#1a3a5c', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{item.title}</div>
+            <div style={{ fontSize: '11px', color: '#5a7a9a', lineHeight: 1.4 }}>{item.desc}</div>
           </div>
         ))}
       </div>
