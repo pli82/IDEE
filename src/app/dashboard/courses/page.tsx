@@ -8,70 +8,44 @@ interface Category {
   modules: { id: string; title: string; _count: { lessons: number } }[]
 }
 
-// Configurare vizuală per categorie — bazată pe slug sau titlu
-const CATEGORY_VISUALS: Record<string, { icon: string; gradient: string; border: string; iconBg: string }> = {
-  'alegeri-presedinte': {
+const BLUE_VISUALS = [
+  {
     icon: '🏛️',
     gradient: 'linear-gradient(135deg, #e8f4fd 0%, #b8d9f5 100%)',
     border: '#5aaae0',
+    iconBg: 'linear-gradient(145deg, #7ec4f0, #2d8fd0)',
+  },
+  {
+    icon: '🗳️',
+    gradient: 'linear-gradient(135deg, #d0e9f9 0%, #90c4ee 100%)',
+    border: '#2d8fd0',
     iconBg: 'linear-gradient(145deg, #5aaae0, #1a7cc0)',
   },
-  'alegeri-parlamentare': {
-    icon: '🗳️',
-    gradient: 'linear-gradient(135deg, #eaf6ec 0%, #b8e5bf 100%)',
-    border: '#5ec885',
-    iconBg: 'linear-gradient(145deg, #5ec885, #1a9a50)',
-  },
-  'alegeri-locale': {
+  {
     icon: '🏙️',
-    gradient: 'linear-gradient(135deg, #fef9e7 0%, #fde9a0 100%)',
-    border: '#fbd660',
-    iconBg: 'linear-gradient(145deg, #fde060, #d4a000)',
+    gradient: 'linear-gradient(135deg, #b8daf6 0%, #6ab5eb 100%)',
+    border: '#1a7cc0',
+    iconBg: 'linear-gradient(145deg, #378add, #0a5fa0)',
   },
-  'alegeri-europarlamentare': {
+  {
     icon: '🇪🇺',
-    gradient: 'linear-gradient(135deg, #f0eafd 0%, #d4b8f5 100%)',
-    border: '#a07ae0',
-    iconBg: 'linear-gradient(145deg, #a07ae0, #6a1ac0)',
+    gradient: 'linear-gradient(135deg, #9ecbf2 0%, #4aa0e6 100%)',
+    border: '#0a5fa0',
+    iconBg: 'linear-gradient(145deg, #2d8fd0, #004b87)',
   },
-  'referendum': {
+  {
     icon: '📋',
-    gradient: 'linear-gradient(135deg, #fdecea 0%, #f9bfba 100%)',
-    border: '#f07070',
-    iconBg: 'linear-gradient(145deg, #f07070, #c02020)',
+    gradient: 'linear-gradient(135deg, #e0eefa 0%, #a8ccf0 100%)',
+    border: '#378add',
+    iconBg: 'linear-gradient(145deg, #4aa0e6, #185fa5)',
   },
-  'referendum-local': {
+  {
     icon: '📍',
-    gradient: 'linear-gradient(135deg, #fdecea 0%, #f9bfba 100%)',
-    border: '#f07070',
-    iconBg: 'linear-gradient(145deg, #f07070, #c02020)',
+    gradient: 'linear-gradient(135deg, #cce0f5 0%, #80b8e8 100%)',
+    border: '#185fa5',
+    iconBg: 'linear-gradient(145deg, #2d8fd0, #003d6e)',
   },
-}
-
-// Fallback vizual — rotație de culori pentru categorii necunoscute
-const FALLBACK_VISUALS = [
-  { icon: '📚', gradient: 'linear-gradient(135deg, #e8f4fd 0%, #b8d9f5 100%)', border: '#5aaae0', iconBg: 'linear-gradient(145deg, #5aaae0, #1a7cc0)' },
-  { icon: '📗', gradient: 'linear-gradient(135deg, #eaf6ec 0%, #b8e5bf 100%)', border: '#5ec885', iconBg: 'linear-gradient(145deg, #5ec885, #1a9a50)' },
-  { icon: '📙', gradient: 'linear-gradient(135deg, #fef9e7 0%, #fde9a0 100%)', border: '#fbd660', iconBg: 'linear-gradient(145deg, #fde060, #d4a000)' },
-  { icon: '📘', gradient: 'linear-gradient(135deg, #f0eafd 0%, #d4b8f5 100%)', border: '#a07ae0', iconBg: 'linear-gradient(145deg, #a07ae0, #6a1ac0)' },
-  { icon: '📕', gradient: 'linear-gradient(135deg, #fdecea 0%, #f9bfba 100%)', border: '#f07070', iconBg: 'linear-gradient(145deg, #f07070, #c02020)' },
-  { icon: '📓', gradient: 'linear-gradient(135deg, #e8fdf4 0%, #b8f5da 100%)', border: '#5ae0b0', iconBg: 'linear-gradient(145deg, #5ae0b0, #1ac080)' },
 ]
-
-function getVisual(cat: Category, index: number) {
-  // Caută după slug exact
-  if (CATEGORY_VISUALS[cat.slug]) return CATEGORY_VISUALS[cat.slug]
-  // Caută dacă slug-ul conține cuvinte cheie
-  const slug = cat.slug.toLowerCase()
-  if (slug.includes('presedint') || slug.includes('prezident')) return CATEGORY_VISUALS['alegeri-presedinte']
-  if (slug.includes('parlament')) return CATEGORY_VISUALS['alegeri-parlamentare']
-  if (slug.includes('local') && slug.includes('referendum')) return CATEGORY_VISUALS['referendum-local']
-  if (slug.includes('local') || slug.includes('administratie')) return CATEGORY_VISUALS['alegeri-locale']
-  if (slug.includes('europ')) return CATEGORY_VISUALS['alegeri-europarlamentare']
-  if (slug.includes('referendum')) return CATEGORY_VISUALS['referendum']
-  // Fallback rotativ
-  return FALLBACK_VISUALS[index % FALLBACK_VISUALS.length]
-}
 
 export default function CoursesPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -104,11 +78,14 @@ export default function CoursesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {categories.map((cat, i) => {
-            const visual = getVisual(cat, i)
+            const visual = BLUE_VISUALS[i % BLUE_VISUALS.length]
             return (
               <Link key={cat.id} href={`/dashboard/courses/${cat.slug}`}
                 className="group block rounded-xl overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5"
-                style={{ border: `1.5px solid ${visual.border}`, boxShadow: '3px 4px 12px rgba(0,0,0,0.08), -2px -2px 8px rgba(255,255,255,0.9)' }}>
+                style={{
+                  border: `1.5px solid ${visual.border}`,
+                  boxShadow: '3px 4px 12px rgba(0,75,135,0.12), -2px -2px 8px rgba(255,255,255,0.9)',
+                }}>
 
                 {/* Banner colorat */}
                 <div style={{ background: visual.gradient, padding: '20px 20px 16px' }}>
@@ -117,7 +94,7 @@ export default function CoursesPage() {
                     background: visual.iconBg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '26px',
-                    boxShadow: 'inset -2px -2px 6px rgba(0,0,0,0.2), inset 2px 2px 4px rgba(255,255,255,0.3), 2px 3px 8px rgba(0,0,0,0.15)',
+                    boxShadow: 'inset -2px -2px 6px rgba(0,0,0,0.2), inset 2px 2px 4px rgba(255,255,255,0.3), 2px 3px 8px rgba(0,50,120,0.2)',
                   }}>
                     {visual.icon}
                   </div>
@@ -132,7 +109,7 @@ export default function CoursesPage() {
                   {cat.children && cat.children.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1">
                       {cat.children.map(sub => (
-                        <span key={sub.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{sub.title}</span>
+                        <span key={sub.id} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{sub.title}</span>
                       ))}
                     </div>
                   )}
