@@ -24,7 +24,6 @@ interface Lesson {
 
 declare global { interface Window { YT: any; onYouTubeIframeAPIReady: () => void } }
 
-// ─── Componenta Test ────────────────────────────────────────────────────────
 function TestModal({ testId, onClose }: { testId: string; onClose: () => void }) {
   const [phase, setPhase] = useState<'loading' | 'quiz' | 'results'>('loading')
   const [testData, setTestData] = useState<TestData | null>(null)
@@ -80,8 +79,6 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="font-bold text-gray-900">{testData?.title || 'Test'}</h2>
@@ -94,31 +91,22 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-light">✕</button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
-
-          {/* Loading */}
           {phase === 'loading' && (
             <div className="flex items-center justify-center py-16">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-aep-600" />
             </div>
           )}
 
-          {/* Quiz */}
           {phase === 'quiz' && currentQ && testData && (
             <div className="p-6 space-y-6">
-              {/* Progress bar */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-aep-500 rounded-full transition-all"
                   style={{ width: `${((currentIdx + 1) / totalQ) * 100}%` }} />
               </div>
-
-              {/* Întrebare */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="font-medium text-gray-900 leading-relaxed">{currentQ.text}</p>
               </div>
-
-              {/* Opțiuni */}
               <div className="space-y-2">
                 {currentQ.options.map(opt => {
                   const isSelected = answers[currentQ.id] === opt.id
@@ -142,8 +130,6 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
                   )
                 })}
               </div>
-
-              {/* Navigare întrebări */}
               <div className="flex flex-wrap gap-2 pt-2">
                 {testData.questions.map((q, i) => (
                   <button key={q.id} onClick={() => setCurrentIdx(i)}
@@ -159,10 +145,8 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
             </div>
           )}
 
-          {/* Rezultate */}
           {phase === 'results' && result && testData && (
             <div className="p-6 space-y-6">
-              {/* Scor */}
               <div className={`rounded-2xl p-6 text-center ${result.passed ? 'bg-green-50' : 'bg-red-50'}`}>
                 <div className={`text-5xl font-bold mb-2 ${result.passed ? 'text-green-600' : 'text-red-600'}`}>
                   {result.score}/{result.maxScore}
@@ -178,8 +162,6 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
                     style={{ width: `${result.percentage}%` }} />
                 </div>
               </div>
-
-              {/* Detalii răspunsuri */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Răspunsurile tale:</h3>
                 {result.results.map((r, i) => (
@@ -219,7 +201,6 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
           )}
         </div>
 
-        {/* Footer butoane */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
           {phase === 'quiz' && testData && (
             <>
@@ -258,7 +239,6 @@ function TestModal({ testId, onClose }: { testId: string; onClose: () => void })
   )
 }
 
-// ─── Pagina de lecție ────────────────────────────────────────────────────────
 export default function LessonPage() {
   const params = useParams()
   const lessonId = params.lessonId as string
@@ -419,12 +399,10 @@ export default function LessonPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Modal test */}
       {showTest && activeTestId && (
         <TestModal testId={activeTestId} onClose={() => { setShowTest(false); setActiveTestId(null) }} />
       )}
 
-      {/* Dialog reluare */}
       {showResumeDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
@@ -547,7 +525,6 @@ export default function LessonPage() {
               )}
             </div>
           )}
-          </div>
         </div>
       )}
 
