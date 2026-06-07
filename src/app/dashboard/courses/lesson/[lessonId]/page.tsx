@@ -546,6 +546,7 @@ export default function LessonPage() {
                 <iframe src={lesson.pdfUrl} className="w-full" style={{ height: '70vh' }} title="Material de învățare" />
               )}
             </div>
+          )}
         </div>
       )}
 
