@@ -20,8 +20,9 @@ async function getSessionFromRequest(request: NextRequest) {
 }
 
 function isAdminSession(session: any) {
-  const roles = session?.roles as string[] || []
-  return roles.some(r => ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r))
+  const roles = Array.isArray(session?.roles) ? session.roles : []
+  console.log('Session roles:', JSON.stringify(roles))
+  return roles.some((r: any) => ['SUPER_ADMIN', 'CONTENT_ADMIN', 'REPORTING_ADMIN'].includes(r))
 }
 
 const CategorySchema = z.object({
