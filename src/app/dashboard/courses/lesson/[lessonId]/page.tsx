@@ -523,25 +523,29 @@ export default function LessonPage() {
           )}
 
           {activeTab === 'pdf' && lesson.pdfUrl && (
-  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
-      <span className="text-sm font-medium text-gray-700">📄 Material de învățare</span>
-      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-aep-600 hover:underline">Deschide în tab nou ↗</a>
-    </div>
-    {lesson.pdfUrl.includes('drive.google.com') ? (
-      <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <span className="text-5xl">📄</span>
-        <p className="text-gray-500 text-sm">Documentul este disponibil pe Google Drive</p>
-        <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer"
-          className="px-6 py-3 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700 flex items-center gap-2">
-          📂 Vizualizează documentul
-        </a>
-      </div>
-    ) : (
-      <iframe src={lesson.pdfUrl} className="w-full" style={{ height: '70vh' }} title="Material de învățare" />
-    )}
-  </div>
-)}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">📄 Material de învățare</span>
+                <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-aep-600 hover:underline">Deschide în tab nou ↗</a>
+              </div>
+              {lesson.pdfUrl.includes('drive.google.com') || lesson.pdfUrl.includes('vercel-storage.com') ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-4 px-12 py-8 border border-gray-200 rounded-xl bg-gray-50">
+                    <i className="ti ti-file-description" aria-hidden="true" style={{ fontSize: '48px', color: '#9ca3af' }} />
+                    <span className="text-sm font-medium text-gray-800">
+                      {lesson.pdfUrl.split('/').pop()?.split('?')[0] || 'Document'}
+                    </span>
+                    <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700">
+                      <i className="ti ti-eye" aria-hidden="true" />
+                      Vizualizează documentul
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <iframe src={lesson.pdfUrl} className="w-full" style={{ height: '70vh' }} title="Material de învățare" />
+              )}
+            </div>
           )}
         </div>
       )}
