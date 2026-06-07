@@ -102,7 +102,7 @@ model OtpToken {
   id          String    @id @default(cuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token       String    // hash-uit
+  token       String
   type        OtpType
   expiresAt   DateTime
   usedAt      DateTime?
@@ -133,7 +133,7 @@ model PasswordReset {
 // ─── JUDEȚE ─────────────────────────────────────────────────────────────────
 
 model County {
-  code        String   @id // AB, AR, AG, ...
+  code        String   @id
   name        String
   active      Boolean  @default(true)
 
@@ -201,11 +201,14 @@ model Lesson {
   
   progress    Progress[]
   tests       Test[]     @relation("LessonTests")
+  materials   LessonMaterial[]
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@map("lessons")
+}
+
 model LessonMaterial {
   id        String   @id @default(cuid())
   lessonId  String
@@ -217,7 +220,6 @@ model LessonMaterial {
   createdAt DateTime @default(now())
 
   @@map("lesson_materials")
-}
 }
 
 model Progress {
@@ -362,7 +364,7 @@ model Notification {
   id            String    @id @default(cuid())
   userId        String?
   user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetSegment String?   // all, county:AB, role:USER etc.
+  targetSegment String?
   title         String
   body          String
   type          NotificationType @default(INFO)
