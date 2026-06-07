@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hashPassword, createAuditLog, createSession } from '@/lib/auth'
+import { hashPassword, createAuditLog, createSession, setSessionCookie } from '@/lib/auth'
 import { RegisterSchema } from '@/lib/validations'
 import { ok, badRequest, conflict, serverError } from '@/lib/api'
 
@@ -38,14 +38,29 @@ export async function POST(req: NextRequest) {
           create: [{ role: 'USER' }],
         },
       },
+      include: { roles: true },
     })
 
-    await createAuditLog({ actorId: user.id, action: 'REGISTER', entityType: 'User', entityId: user.id, ip: req.headers.get('x-forwarded-for') || undefined })
+    await createAuditLog({
+      actorId: user.id,
+      action: 'REGISTER',
+      entityType: 'User',
+      entityId: user.id,
+      ip: req.headers.get('x-forwarded-for') || undefined,
+    })
 
     // Creează sesiune automată după înregistrare
-    const response = ok({ message: 'Cont creat cu succes.', userId: user.id })
-    await createSession(user.id, response)
-    return response
+    const token = await createSession({
+      id: user.id,
+      email: user.email,
+      roles: user.roles.map(r => r.role) as any,
+      profileComplete: false,
+      name: undefined,
+      judetCode: undefined,
+    })
+    setSessionCookie(token)
+
+    return ok({ message: 'Cont creat cu succes.', userId: user.id })
   } catch (err) {
     console.error('Register error:', err)
     return serverError()
