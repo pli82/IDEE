@@ -40,17 +40,17 @@ export async function GET(req: NextRequest) {
     })
 
     const rows = (progress as any[]).map(p => ({
-      'Nume': p.user.profile?.nume || '—',
-      'Prenume': p.user.profile?.prenume || '—',
-      'Email': p.user.email,
-      'Județ': p.user.profile?.judetCode || '—',
-      'Categorie': p.lesson.module.category.title,
-      'Modul': p.lesson.module.title,
-      'Lecție': p.lesson.title,
-      'Status': p.status === 'COMPLETED' ? 'Completat' : p.status === 'IN_PROGRESS' ? 'În curs' : 'Neînceput',
-      'Progres (%)': Math.round(p.watchedPercent),
-      'Ultima accesare': p.updatedAt.toISOString().split('T')[0],
-    }))
+  'Nume': p.user.profile?.nume || '—',
+  'Prenume': p.user.profile?.prenume || '—',
+  'Email': p.user.email,
+  'Județ': p.user.profile?.judetCode || '—',
+  'Categorie': p.lesson?.module?.category?.title || '—',
+  'Modul': p.lesson?.module?.title || '—',
+  'Lecție': p.lesson?.title || '—',
+  'Status': p.status === 'COMPLETED' ? 'Completat' : p.status === 'IN_PROGRESS' ? 'În curs' : 'Neînceput',
+  'Progres (%)': Math.round(p.watchedPercent),
+  'Ultima accesare': p.updatedAt.toISOString().split('T')[0],
+}))
 
 if (format === 'json') {
   return NextResponse.json({ data: rows })
