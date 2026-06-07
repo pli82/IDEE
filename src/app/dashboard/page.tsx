@@ -191,17 +191,12 @@ export default function DashboardPage() {
       const progress = progressRes.status === 'fulfilled' ? progressRes.value : null
       const events = eventsRes.status === 'fulfilled' ? eventsRes.value : null
       const notifs = notifRes.status === 'fulfilled' ? notifRes.value : null
+
       setData({
         user: profile?.data,
         stats: progress?.data || {},
         notifications: notifs?.data || [],
         upcomingEvents: events?.data || [],
-      })
-      setData({
-        user: profileRes.data,
-        stats: progressRes.data || {},
-        notifications: notifRes?.data || [],
-        upcomingEvents: eventsRes?.data || [],
       })
     }).catch(err => {
       console.error('Dashboard fetch error:', err)
