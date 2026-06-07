@@ -9,25 +9,38 @@ export async function GET(_req: NextRequest) {
   if (!session) return unauthorized()
 
   try {
-    const [lessonProgress, totalLessons, passedTests, failedTests] = await Promise.all([
-      prisma.progress.findMany({
-        where: { userId: session.id },
-        include: {
-          lesson: {
-            select: {
-              title: true,
-              module: {
-                select: {
-                  title: true,
-                  category: { select: { title: true } },
-                },
+    const lessonProgress = await prisma.progress.findMany({
+      where: { userId: session.id },
+      include: {
+        lesson: {
+          select: {
+            title: true,
+            module: {
+              select: {
+                title: true,
+                category: { select: { title: true } },
               },
             },
           },
         },
-        orderBy: { updatedAt: 'desc' },
-      }),
-      prisma.lesson.count({ where: { published: true } }),
-      prisma.testAttempt.count({ where: { userId: session.id, passed: true } }),
-      prisma.testAttempt.count({ where: { userId: session.id, passed: false, submittedAt: { not: null } } }),
-    ])
+      },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    const totalLessons = await prisma.lesson.count({ where: { published: true } })
+    const completedLessons = lessonProgress.filter(p => p.status === 'COMPLETED').length
+    const passedTests = await prisma.testAttempt.count({ where: { userId: session.id, passed: true } })
+    const failedTests = await prisma.testAttempt.count({ where: { userId: session.id, passed: false, submittedAt: { not: null } } })
+
+    return ok({
+      lessonProgress,
+      totalLessons,
+      completedLessons,
+      passedTests,
+      failedTests,
+    })
+  } catch (err) {
+    console.error('Progress GET error:', err)
+    return serverError()
+  }
+}
