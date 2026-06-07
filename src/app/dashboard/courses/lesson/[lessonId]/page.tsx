@@ -450,10 +450,11 @@ export default function LessonPage() {
                 <div className="flex flex-col items-center gap-4 px-12 py-8 border border-gray-200 rounded-xl bg-gray-50">
                   <i className="ti ti-file-description" aria-hidden="true" style={{ fontSize: '48px', color: '#9ca3af' }} />
                   <a href={material.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-6 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700">
-                    <i className="ti ti-eye" aria-hidden="true" />
-                    Vizualizează documentul
-                  </a>
+  onClick={() => { markCompleted() }}
+  className="flex items-center gap-2 px-6 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700">
+  <i className="ti ti-eye" aria-hidden="true" />
+  Vizualizează documentul
+</a>
                 </div>
               </div>
             </div>
@@ -476,10 +477,11 @@ export default function LessonPage() {
               <div className="flex flex-col items-center gap-4 px-12 py-8 border border-gray-200 rounded-xl bg-gray-50">
                 <i className="ti ti-file-description" aria-hidden="true" style={{ fontSize: '48px', color: '#9ca3af' }} />
                 <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700">
-                  <i className="ti ti-eye" aria-hidden="true" />
-                  Vizualizează documentul
-                </a>
+  onClick={() => { markCompleted() }}
+  className="flex items-center gap-2 px-6 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700">
+  <i className="ti ti-eye" aria-hidden="true" />
+  Vizualizează documentul
+</a>
               </div>
             </div>
           ) : (
