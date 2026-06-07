@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { COUNTIES } from '@/lib/counties'
 
@@ -8,8 +8,20 @@ const STUDII_OPTIONS = ['Liceale', 'Postliceale', 'Universitare (licență)', 'M
 export default function ProfileCompletePage() {
   const router = useRouter()
   const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', gdprConsent: false })
+  const [userData, setUserData] = useState<{ email: string; phone: string } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/profile', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.data) {
+          setUserData({ email: d.data.email || '', phone: d.data.phone || '' })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const fi = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }))
 
@@ -41,6 +53,20 @@ export default function ProfileCompletePage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+          {/* Date precompletate din înregistrare */}
+          {userData && (
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Email</label>
+                <input className="input bg-gray-50 text-gray-500 cursor-not-allowed" value={userData.email} disabled />
+              </div>
+              <div>
+                <label className="label">Telefon</label>
+                <input className="input bg-gray-50 text-gray-500 cursor-not-allowed" value={userData.phone} disabled />
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
