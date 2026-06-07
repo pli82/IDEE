@@ -206,6 +206,18 @@ model Lesson {
   updatedAt   DateTime  @updatedAt
 
   @@map("lessons")
+model LessonMaterial {
+  id        String   @id @default(cuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title     String
+  url       String
+  type      String   @default("PDF")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("lesson_materials")
+}
 }
 
 model Progress {
