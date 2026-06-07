@@ -351,7 +351,7 @@ export default function AdminContent() {
                   <label className="block text-xs text-gray-600 mb-1">Modul *</label>
                   <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={formData.moduleId} onChange={e => setFormData(p => ({ ...p, moduleId: e.target.value }))}>
                     <option value="">Selectează modulul</option>
-                    {modules.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                    {modules.map(m => <option key={m.id} value={m.id}>{m.title} — {m.category?.title}</option>)}
                   </select>
                 </div>
                 <div>
