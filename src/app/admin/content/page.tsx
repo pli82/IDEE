@@ -361,10 +361,30 @@ export default function AdminContent() {
                   <p className="text-xs text-gray-400 mt-1">YouTube: youtube.com/embed/ID_VIDEO</p>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">📄 URL Suport de curs (PDF)</label>
-                  <input type="url" placeholder="https://drive.google.com/file/d/.../preview" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    value={formData.pdfUrl} onChange={e => setFormData(p => ({ ...p, pdfUrl: e.target.value }))} />
-                </div>
+  <label className="block text-xs text-gray-600 mb-1">📄 Suport de curs (PDF/PPT)</label>
+  <div className="space-y-2">
+    <input type="url" placeholder="https://... (link extern)" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      value={formData.pdfUrl} onChange={e => setFormData(p => ({ ...p, pdfUrl: e.target.value }))} />
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-400">sau</span>
+      <input type="file" accept=".pdf,.ppt,.pptx" className="text-sm text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-aep-50 file:text-aep-700 hover:file:bg-aep-100"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const fd = new FormData()
+          fd.append('file', file)
+          const r = await fetch('/api/admin/upload', { method: 'POST', credentials: 'include', body: fd })
+          const d = await r.json()
+          if (r.ok) setFormData(p => ({ ...p, pdfUrl: d.url }))
+          else alert(d.error || 'Eroare la upload')
+        }}
+      />
+      {formData.pdfUrl && formData.pdfUrl.includes('vercel-storage') && (
+        <span className="text-xs text-green-600">✓ Fișier încărcat</span>
+      )}
+    </div>
+  </div>
+</div>
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">🔗 Link extern (opțional)</label>
                   <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
