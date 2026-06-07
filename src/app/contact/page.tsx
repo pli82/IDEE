@@ -5,7 +5,7 @@ export default function ContactPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Contact AEP</h1>
         <div className="space-y-4 text-gray-700">
           <div className="bg-aep-50 rounded-xl p-5">
-            <h2 className="font-semibold text-aep-800 mb-3">Autoritatea Electorală Permanentă</h2>
+           <h2 className="font-semibold text-aep-800 mb-3">AEP</h2>
             <dl className="space-y-2 text-sm">
               <div className="flex gap-2"><dt className="text-gray-500 w-24">Adresă:</dt><dd>Str. Stavropoleos nr. 6, sector 3, București, 030084</dd></div>
               <div className="flex gap-2"><dt className="text-gray-500 w-24">Telefon:</dt><dd><a href="tel:0371307503" className="text-aep-600 hover:underline">0371.307.503</a></dd></div>

@@ -8,7 +8,7 @@ export default function TermeniUtilizare() {
           <h2 className="text-lg font-semibold mt-6">Utilizare permisă</h2>
           <p>Platforma este destinată exclusiv instruirii electorale a persoanelor implicate în procesele electorale din România. Utilizatorii se angajează să furnizeze informații corecte și să nu utilizeze platforma în scopuri frauduloase.</p>
           <h2 className="text-lg font-semibold mt-6">Proprietate intelectuală</h2>
-          <p>Toate materialele de instruire (video, PDF, prezentări) sunt proprietatea Autorității Electorale Permanente și nu pot fi reproduse sau distribuite fără acordul scris al AEP.</p>
+          <p>Toate materialele de instruire (video, PDF, prezentări) sunt proprietatea AEP și nu pot fi reproduse sau distribuite fără acordul scris al AEP.</p>
           <h2 className="text-lg font-semibold mt-6">Responsabilitate</h2>
           <p>AEP depune eforturi pentru menținerea disponibilității platformei, dar nu poate garanta funcționarea neîntreruptă. Rezultatele testelor au caracter informativ și nu constituie o certificare oficială.</p>
           <h2 className="text-lg font-semibold mt-6">Contact</h2>

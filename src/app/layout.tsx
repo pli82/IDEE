@@ -6,8 +6,8 @@ export const metadata: Metadata = {
     default: 'AEP Instruire Online',
     template: '%s | AEP Instruire Online',
   },
-  description: 'Platforma oficială de instruire electorală a Autorității Electorale Permanente',
-  robots: 'noindex, nofollow', // platformă internă
+  description: 'Platforma oficială de instruire electorală – IDEE_ROAEP',
+  robots: 'noindex, nofollow',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -20,7 +20,7 @@ export default async function HomePage() {
   const appName = settings['app.name'] || 'AEP Instruire Online'
   const presentation =
     settings['homepage.presentation'] ||
-    'Autoritatea Electorală Permanentă - AEP este o instituție administrativă autonomă a statului român, cu rol esențial în organizarea și buna desfășurare a proceselor electorale.'
+    'AEP este o instituție administrativă autonomă a statului român, cu rol esențial în organizarea și buna desfășurare a proceselor electorale.'
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -28,16 +28,12 @@ export default async function HomePage() {
       <header className="bg-aep-600 text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Logo placeholder */}
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
               <span className="text-aep-600 font-bold text-sm">AEP</span>
             </div>
             <div>
-              <p className="text-xs text-blue-200 uppercase tracking-wider">
-                Autoritatea Electorală Permanentă
-              </p>
               <h1 className="text-lg font-semibold leading-tight">
-                Program de instruire online
+                Instruire online – IDEE_ROAEP.
               </h1>
             </div>
           </div>
@@ -98,10 +94,7 @@ export default async function HomePage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {BENEFITS.map((b) => (
-              <div
-                key={b.title}
-                className="card p-6 hover:shadow-md transition-shadow group"
-              >
+              <div key={b.title} className="card p-6 hover:shadow-md transition-shadow group">
                 <div className="w-12 h-12 rounded-lg bg-aep-50 flex items-center justify-center mb-4 group-hover:bg-aep-100 transition-colors">
                   <span className="text-2xl">{b.icon}</span>
                 </div>
@@ -113,7 +106,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Descriere completă AEP */}
+      {/* Descriere AEP */}
       <section className="py-16 bg-neutral-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="card p-8">
@@ -122,7 +115,7 @@ export default async function HomePage() {
                 <span className="text-white font-bold text-sm">AEP</span>
               </div>
               <div>
-                <h3 className="font-bold text-neutral-800">Autoritatea Electorală Permanentă</h3>
+                <h3 className="font-bold text-neutral-800">AEP</h3>
                 <p className="text-sm text-neutral-500">Instituție administrativă autonomă a statului român</p>
               </div>
             </div>
@@ -140,7 +133,7 @@ export default async function HomePage() {
             <div>
               <p className="font-semibold text-sm">AEP Instruire Online</p>
               <p className="text-xs text-blue-200 mt-1">
-                © {new Date().getFullYear()} Autoritatea Electorală Permanentă. Toate drepturile rezervate.
+                © {new Date().getFullYear()} AEP. Toate drepturile rezervate.
               </p>
             </div>
             <nav className="flex items-center gap-6 text-sm text-blue-200">
@@ -165,37 +158,31 @@ const BENEFITS = [
   {
     icon: '📚',
     title: 'Materiale digitale complete',
-    description:
-      'Acces la ghiduri, prezentări și documente pentru toate tipurile de alegeri și referendumuri.',
+    description: 'Acces la ghiduri, prezentări și documente pentru toate tipurile de alegeri și referendumuri.',
   },
   {
     icon: '🎬',
     title: 'Lecții video interactive',
-    description:
-      'Videoclipuri de instruire cu progres memorat, posibilitate de reluare și suport PDF atașat.',
+    description: 'Videoclipuri de instruire cu progres memorat, posibilitate de reluare și suport PDF atașat.',
   },
   {
     icon: '✅',
     title: 'Teste de evaluare',
-    description:
-      'Evaluați cunoștințele prin teste randomizate cu feedback imediat și istoricul tuturor încercărilor.',
+    description: 'Evaluați cunoștințele prin teste randomizate cu feedback imediat și istoricul tuturor încercărilor.',
   },
   {
     icon: '📊',
     title: 'Monitorizare progres',
-    description:
-      'Urmăriți progresul personal pe fiecare modul, lecție și test susținut.',
+    description: 'Urmăriți progresul personal pe fiecare modul, lecție și test susținut.',
   },
   {
     icon: '📅',
     title: 'Calendar instruiri',
-    description:
-      'Consultați evenimentele de instruire disponibile în județul dvs. și din toată țara.',
+    description: 'Consultați evenimentele de instruire disponibile în județul dvs. și din toată țara.',
   },
   {
     icon: '🔒',
     title: 'Platformă securizată',
-    description:
-      'Date protejate conform GDPR, autentificare sigură și stocare securizată a informațiilor.',
+    description: 'Date protejate conform GDPR, autentificare sigură și stocare securizată a informațiilor.',
   },
 ]

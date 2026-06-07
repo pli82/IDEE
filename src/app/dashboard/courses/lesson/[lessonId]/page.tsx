@@ -14,7 +14,7 @@ interface TestResult {
   results: { questionId: string; questionText: string; selectedOptionId: string | null; correctOptionId: string | null; isCorrect: boolean; options: Option[] }[]
 }
 interface Lesson {
-  id: string; title: string; description?: string; videoUrl?: string; pdfUrl?: string
+  id: string; title: string; description?: string; videoUrl?: string; pdfUrl?: string; externalUrl?: string
   moduleId: string
   module: { title: string; category: { title: string; slug: string }; lessons: { id: string; title: string; order: number }[] }
   minWatchPercentForTest: number
@@ -502,8 +502,14 @@ export default function LessonPage() {
             {lesson.pdfUrl && (
               <button onClick={() => setActiveTab('pdf')}
                 className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'pdf' ? 'border-aep-600 text-aep-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                📄 Suport de curs
+                📄 Material de învățare
               </button>
+            )}
+            {lesson.externalUrl && (
+              <a href={lesson.externalUrl} target="_blank" rel="noopener noreferrer"
+                className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-gray-500 hover:text-gray-700 transition-colors">
+                🔗 Link extern - Invățare prin joc ↗
+              </a>
             )}
           </div>
 
@@ -519,10 +525,10 @@ export default function LessonPage() {
           {activeTab === 'pdf' && lesson.pdfUrl && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <span className="text-sm font-medium text-gray-700">📄 Suport de curs</span>
+                <span className="text-sm font-medium text-gray-700">📄 Material de învățare</span>
                 <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-aep-600 hover:underline">Deschide în tab nou ↗</a>
               </div>
-              <iframe src={lesson.pdfUrl} className="w-full" style={{ height: '70vh' }} title="Suport de curs" />
+              <iframe src={lesson.pdfUrl} className="w-full" style={{ height: '70vh' }} title="Material de învățare" />
             </div>
           )}
         </div>

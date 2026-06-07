@@ -47,6 +47,7 @@ const LessonSchema = z.object({
   description: z.string().max(2000).optional(),
   videoUrl: z.string().url().optional().nullable(),
   pdfUrl: z.string().url().optional().nullable(),
+  externalUrl: z.string().url().optional().nullable(),
   order: z.number().int().default(0),
   published: z.boolean().default(false),
   minWatchPercentForTest: z.number().int().min(0).max(100).default(0),

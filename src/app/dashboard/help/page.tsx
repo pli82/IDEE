@@ -22,7 +22,7 @@ export default function HelpPage() {
       </div>
 
       <div className="bg-aep-50 border border-aep-200 rounded-xl p-6">
-        <h2 className="font-semibold text-aep-800 mb-3">Contact Autoritatea Electorală Permanentă</h2>
+        <h2 className="font-semibold text-aep-800 mb-3">Contact AEP</h2>
         <div className="space-y-2 text-sm text-aep-700">
           <p>🌐 Site web: <a href="https://www.roaep.ro" target="_blank" className="underline">www.roaep.ro</a></p>
           <p>📧 Email: <a href="mailto:contact@roaep.ro" className="underline">contact@roaep.ro</a></p>

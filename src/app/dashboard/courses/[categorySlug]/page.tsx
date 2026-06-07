@@ -79,8 +79,11 @@ export default function CategoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/dashboard/courses" className="hover:text-aep-600">← Categorii</Link>
+<div className="flex items-center gap-2 text-sm text-gray-500">
+        <Link href="/dashboard/courses"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 hover:text-aep-600 transition-colors">
+          ← Înapoi la materiale
+        </Link>
         <span>/</span>
         <span className="font-medium text-gray-900">{categoryTitle}</span>
       </div>
