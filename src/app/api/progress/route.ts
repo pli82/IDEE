@@ -9,17 +9,25 @@ export async function GET(_req: NextRequest) {
   if (!session) return unauthorized()
 
   try {
-    const attempts = await prisma.testAttempt.findMany({
-      where: { userId: session.id, submittedAt: { not: null } },
-      include: {
-        test: { select: { title: true } },
-      },
-      orderBy: { submittedAt: 'desc' },
-    })
-
-    return ok({ attempts })
-  } catch (err) {
-    console.error('Tests GET error:', err)
-    return serverError()
-  }
-}
+    const [lessonProgress, totalLessons, passedTests, failedTests] = await Promise.all([
+      prisma.progress.findMany({
+        where: { userId: session.id },
+        include: {
+          lesson: {
+            select: {
+              title: true,
+              module: {
+                select: {
+                  title: true,
+                  category: { select: { title: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.lesson.count({ where: { published: true } }),
+      prisma.testAttempt.count({ where: { userId: session.id, passed: true } }),
+      prisma.testAttempt.count({ where: { userId: session.id, passed: false, submittedAt: { not: null } } }),
+    ])
