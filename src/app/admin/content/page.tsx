@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 interface Category { id: string; title: string; slug: string; description?: string; published: boolean; order: number; _count: { modules: number } }
 interface Module { id: string; title: string; description?: string; published: boolean; categoryId: string; category: { title: string }; _count: { lessons: number } }
 interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; pdfUrl?: string; externalUrl?: string; order: number; minWatchPercentForTest: number }
+interface LessonMaterial { id: string; title: string; url: string; type: string; order: number }
 
 const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', pdfUrl: '', externalUrl: '', minWatchPercentForTest: 0 }
 const apiFetch = (url: string, options: RequestInit = {}) => fetch(url, { ...options, credentials: 'include' })
@@ -34,6 +35,133 @@ function ColumnDropdown({ label, children }: { label: string; children: React.Re
   )
 }
 
+function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: () => void }) {
+  const [materials, setMaterials] = useState<LessonMaterial[]>([])
+  const [loading, setLoading] = useState(true)
+  const [newTitle, setNewTitle] = useState('')
+  const [newUrl, setNewUrl] = useState('')
+  const [newType, setNewType] = useState('PDF')
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+
+  const loadMaterials = async () => {
+    const r = await apiFetch(`/api/courses/lessons/${lessonId}/materials`)
+    const d = await r.json()
+    setMaterials(d.data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { loadMaterials() }, [lessonId])
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError('')
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await fetch('/api/admin/upload', { method: 'POST', credentials: 'include', body: fd })
+    const d = await r.json()
+    setUploading(false)
+    if (r.ok) {
+      setNewUrl(d.url)
+      if (!newTitle) setNewTitle(file.name.replace(/\.[^/.]+$/, ''))
+    } else {
+      setError(d.error || 'Eroare la upload')
+    }
+  }
+
+  const handleAdd = async () => {
+    if (!newTitle || !newUrl) { setError('Titlu și URL obligatorii'); return }
+    setError('')
+    const r = await apiFetch(`/api/courses/lessons/${lessonId}/materials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle, url: newUrl, type: newType, order: materials.length }),
+    })
+    if (r.ok) {
+      setNewTitle(''); setNewUrl(''); setNewType('PDF')
+      loadMaterials()
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Ștergi acest material?')) return
+    await apiFetch(`/api/courses/lessons/${lessonId}/materials?id=${id}`, { method: 'DELETE' })
+    loadMaterials()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">Materiale lecție</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-aep-600" /></div>
+        ) : (
+          <>
+            {materials.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Niciun material adăugat încă</p>
+            ) : (
+              <div className="space-y-2 mb-4">
+                {materials.map((m, i) => (
+                  <div key={m.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <span className="text-lg">{m.type === 'PDF' ? '📄' : '📊'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{m.title}</p>
+                      <p className="text-xs text-gray-400 truncate">{m.url}</p>
+                    </div>
+                    <button onClick={() => handleDelete(m.id)} className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 flex-shrink-0">Șterge</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <p className="text-sm font-medium text-gray-700">Adaugă material nou</p>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Titlu *</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="ex. Suport de curs PDF" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Tip</label>
+                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={newType} onChange={e => setNewType(e.target.value)}>
+                  <option value="PDF">PDF</option>
+                  <option value="PPT">PPT / PPTX</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">URL (link extern)</label>
+                <input type="url" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="https://drive.google.com/..." value={newUrl} onChange={e => setNewUrl(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">sau</span>
+                <label className="cursor-pointer text-xs text-aep-600 hover:underline">
+                  {uploading ? 'Se încarcă...' : '📎 Încarcă fișier (PDF/PPT)'}
+                  <input type="file" accept=".pdf,.ppt,.pptx" className="hidden" onChange={handleUpload} disabled={uploading} />
+                </label>
+                {newUrl && newUrl.includes('vercel-storage') && (
+                  <span className="text-xs text-green-600">✓ Fișier încărcat</span>
+                )}
+              </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+              <button onClick={handleAdd} disabled={!newTitle || !newUrl}
+                className="w-full px-4 py-2 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700 disabled:opacity-50">
+                + Adaugă material
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminContent() {
   const [tab, setTab] = useState<'categories' | 'modules' | 'lessons'>('categories')
   const [categories, setCategories] = useState<Category[]>([])
@@ -44,8 +172,8 @@ export default function AdminContent() {
   const [editItem, setEditItem] = useState<any>(null)
   const [formData, setFormData] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [materialsLessonId, setMaterialsLessonId] = useState<string | null>(null)
 
-  // Filtre
   const [filterCategory, setFilterCategory] = useState('')
   const [filterModule, setFilterModule] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -90,20 +218,10 @@ export default function AdminContent() {
     if (filterFiles === 'pdf') items = items.filter(i => i.pdfUrl)
     if (filterFiles === 'both') items = items.filter(i => i.videoUrl && i.pdfUrl)
     if (filterFiles === 'none') items = items.filter(i => !i.videoUrl && !i.pdfUrl)
-
     items = [...items].sort((a, b) => {
-      if (sortTitle) {
-        const r = a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-        return sortTitle === 'asc' ? r : -r
-      }
-      if (sortLessons) {
-        const r = (a._count?.lessons ?? 0) - (b._count?.lessons ?? 0)
-        return sortLessons === 'asc' ? r : -r
-      }
-      if (sortOrder) {
-        const r = (a.order ?? 0) - (b.order ?? 0)
-        return sortOrder === 'asc' ? r : -r
-      }
+      if (sortTitle) { const r = a.title.toLowerCase().localeCompare(b.title.toLowerCase()); return sortTitle === 'asc' ? r : -r }
+      if (sortLessons) { const r = (a._count?.lessons ?? 0) - (b._count?.lessons ?? 0); return sortLessons === 'asc' ? r : -r }
+      if (sortOrder) { const r = (a.order ?? 0) - (b.order ?? 0); return sortOrder === 'asc' ? r : -r }
       return 0
     })
     return items
@@ -160,6 +278,10 @@ export default function AdminContent() {
 
   return (
     <div className="space-y-6">
+      {materialsLessonId && (
+        <MaterialsManager lessonId={materialsLessonId} onClose={() => setMaterialsLessonId(null)} />
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Gestionare conținut</h1>
         <button onClick={openAdd} className="px-4 py-2 rounded-lg bg-aep-600 text-white text-sm font-medium hover:bg-aep-700">+ Adaugă</button>
@@ -200,7 +322,6 @@ export default function AdminContent() {
                     <SortOptions value={sortTitle} onChange={v => { setSortTitle(v as any); setSortLessons(''); setSortOrder('') }} />
                   </ColumnDropdown>
                 </th>
-
                 {tab === 'modules' && (
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Categorie">
@@ -214,12 +335,11 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-
                 {tab === 'lessons' && (
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Modul">
                       <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
-                      {[['', 'Toate modulele'], ...modules.map(m => [m.id, m.title])].map(([v, label]) => (
+                      {[['', 'Toate modulele'], ...modules.map(m => [m.id, `${m.title} — ${m.category?.title}`])].map(([v, label]) => (
                         <button key={v} onClick={() => setFilterModule(v)}
                           className={`w-full text-left px-2 py-1.5 rounded-lg text-sm hover:bg-gray-50 ${filterModule === v ? 'text-aep-600 font-medium bg-aep-50' : 'text-gray-700'}`}>
                           {label}
@@ -228,7 +348,6 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-
                 {tab === 'lessons' && (
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Fișiere">
@@ -242,7 +361,6 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-
                 <th className="text-left px-4 py-3">
                   <ColumnDropdown label="Status">
                     <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
@@ -254,7 +372,6 @@ export default function AdminContent() {
                     ))}
                   </ColumnDropdown>
                 </th>
-
                 {tab !== 'lessons' && (
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Conținut">
@@ -262,7 +379,6 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-
                 {tab !== 'categories' && (
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Ordine">
@@ -270,7 +386,6 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-
                 <th className="text-right px-4 py-3 font-medium text-gray-600 text-sm">Acțiuni</th>
               </tr>
             </thead>
@@ -287,7 +402,7 @@ export default function AdminContent() {
                     {item.description && <div className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{item.description}</div>}
                   </td>
                   {tab === 'modules' && <td className="px-4 py-3 text-gray-500 text-xs">{item.category?.title || '—'}</td>}
-                  {tab === 'lessons' && <td className="px-4 py-3 text-gray-500 text-xs">{item.module?.title || '—'}</td>}
+                  {tab === 'lessons' && <td className="px-4 py-3 text-gray-500 text-xs">{item.module?.title ? `${item.module.title}` : '—'}</td>}
                   {tab === 'lessons' && (
                     <td className="px-4 py-3 text-xs space-y-0.5">
                       {item.videoUrl ? <div className="text-blue-600">🎬 Video</div> : <div className="text-gray-300">—</div>}
@@ -307,6 +422,9 @@ export default function AdminContent() {
                   {tab !== 'categories' && <td className="px-4 py-3 text-gray-400 text-xs">{item.order ?? 0}</td>}
                   <td className="px-4 py-3 text-right space-x-2">
                     <button onClick={() => openEdit(item)} className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50">Modifică</button>
+                    {tab === 'lessons' && (
+                      <button onClick={() => setMaterialsLessonId(item.id)} className="text-xs px-2 py-1 rounded border border-purple-200 text-purple-600 hover:bg-purple-50">Materiale</button>
+                    )}
                     <button onClick={() => togglePublished(item.id, item.published, tab)} className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-100">{item.published ? 'Ascunde' : 'Publică'}</button>
                     <button onClick={() => deleteItem(item.id, tab)} className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">Șterge</button>
                   </td>
@@ -346,57 +464,36 @@ export default function AdminContent() {
                   </select>
                 </div>
               )}
-              {tab === 'lessons' && (<>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Modul *</label>
-                  <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={formData.moduleId} onChange={e => setFormData(p => ({ ...p, moduleId: e.target.value }))}>
-                    <option value="">Selectează modulul</option>
-                    {modules.map(m => <option key={m.id} value={m.id}>{m.title} — {m.category?.title}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">🎬 URL Video</label>
-                  <input type="url" placeholder="https://www.youtube.com/embed/..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    value={formData.videoUrl} onChange={e => setFormData(p => ({ ...p, videoUrl: e.target.value }))} />
-                  <p className="text-xs text-gray-400 mt-1">YouTube: youtube.com/embed/ID_VIDEO</p>
-                </div>
-                <div>
-  <label className="block text-xs text-gray-600 mb-1">📄 Suport de curs (PDF/PPT)</label>
-  <div className="space-y-2">
-    <input type="url" placeholder="https://... (link extern)" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-      value={formData.pdfUrl} onChange={e => setFormData(p => ({ ...p, pdfUrl: e.target.value }))} />
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400">sau</span>
-      <input type="file" accept=".pdf,.ppt,.pptx" className="text-sm text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-aep-50 file:text-aep-700 hover:file:bg-aep-100"
-        onChange={async (e) => {
-          const file = e.target.files?.[0]
-          if (!file) return
-          const fd = new FormData()
-          fd.append('file', file)
-          const r = await fetch('/api/admin/upload', { method: 'POST', credentials: 'include', body: fd })
-          const d = await r.json()
-          if (r.ok) setFormData(p => ({ ...p, pdfUrl: d.url }))
-          else alert(d.error || 'Eroare la upload')
-        }}
-      />
-      {formData.pdfUrl && formData.pdfUrl.includes('vercel-storage') && (
-        <span className="text-xs text-green-600">✓ Fișier încărcat</span>
-      )}
-    </div>
-  </div>
-</div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">🔗 Link extern (opțional)</label>
-                  <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    value={formData.externalUrl} onChange={e => setFormData(p => ({ ...p, externalUrl: e.target.value }))} />
-                  <p className="text-xs text-gray-400 mt-1">Link opțional afișat pe pagina lecției</p>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">% minim vizionare pentru test (0 = fără restricție)</label>
-                  <input type="number" min={0} max={100} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    value={formData.minWatchPercentForTest} onChange={e => setFormData(p => ({ ...p, minWatchPercentForTest: parseInt(e.target.value) || 0 }))} />
-                </div>
-              </>)}
+              {tab === 'lessons' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Modul *</label>
+                    <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={formData.moduleId} onChange={e => setFormData(p => ({ ...p, moduleId: e.target.value }))}>
+                      <option value="">Selectează modulul</option>
+                      {modules.map(m => <option key={m.id} value={m.id}>{m.title} — {m.category?.title}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">🎬 URL Video</label>
+                    <input type="url" placeholder="https://www.youtube.com/embed/..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.videoUrl} onChange={e => setFormData(p => ({ ...p, videoUrl: e.target.value }))} />
+                    <p className="text-xs text-gray-400 mt-1">YouTube: youtube.com/embed/ID_VIDEO</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">🔗 Link extern (opțional)</label>
+                    <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.externalUrl} onChange={e => setFormData(p => ({ ...p, externalUrl: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">% minim vizionare pentru test (0 = fără restricție)</label>
+                    <input type="number" min={0} max={100} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={formData.minWatchPercentForTest} onChange={e => setFormData(p => ({ ...p, minWatchPercentForTest: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
+                    📎 Materialele PDF/PPT se adaugă după salvare, din butonul <strong>Materiale</strong> din lista de lecții.
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Descriere</label>
                 <textarea placeholder="Descriere (opțional)" rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
