@@ -16,8 +16,9 @@ export async function GET(req: NextRequest) {
   try {
     const progress = await prisma.progress.findMany({
       where: {
-        updatedAt: { gte: new Date(from), lte: new Date(to + 'T23:59:59') },
-      },
+  updatedAt: { gte: new Date(from), lte: new Date(to + 'T23:59:59') },
+  lesson: { isNot: null },
+},
       include: {
         user: {
           include: {
