@@ -181,18 +181,30 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       fetch('/api/profile', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/progress', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/events?limit=5', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/notifications', { credentials: 'include' }).then(r => r.json()),
     ]).then(([profileRes, progressRes, eventsRes, notifRes]) => {
+      const profile = profileRes.status === 'fulfilled' ? profileRes.value : null
+      const progress = progressRes.status === 'fulfilled' ? progressRes.value : null
+      const events = eventsRes.status === 'fulfilled' ? eventsRes.value : null
+      const notifs = notifRes.status === 'fulfilled' ? notifRes.value : null
+      setData({
+        user: profile?.data,
+        stats: progress?.data || {},
+        notifications: notifs?.data || [],
+        upcomingEvents: events?.data || [],
+      })
       setData({
         user: profileRes.data,
         stats: progressRes.data || {},
-        notifications: notifRes.data || [],
-        upcomingEvents: eventsRes.data || [],
+        notifications: notifRes?.data || [],
+        upcomingEvents: eventsRes?.data || [],
       })
+    }).catch(err => {
+      console.error('Dashboard fetch error:', err)
     }).finally(() => setLoading(false))
   }, [])
 
