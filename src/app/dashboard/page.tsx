@@ -192,10 +192,15 @@ export default function DashboardPage() {
       const events = eventsRes.status === 'fulfilled' ? eventsRes.value : null
       const notifs = notifRes.status === 'fulfilled' ? notifRes.value : null
 
+      const sortOrder = { ERROR: 0, WARNING: 2, INFO: 1, SUCCESS: 1 }
+      const sortedNotifs = (notifs?.data || []).sort((a: Notification, b: Notification) =>
+        (sortOrder[a.type as keyof typeof sortOrder] ?? 9) - (sortOrder[b.type as keyof typeof sortOrder] ?? 9)
+      )
+
       setData({
         user: profile?.data,
         stats: progress?.data || {},
-        notifications: notifs?.data || [],
+        notifications: sortedNotifs,
         upcomingEvents: events?.data || [],
       })
     }).catch(err => {
