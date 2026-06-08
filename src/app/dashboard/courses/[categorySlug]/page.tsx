@@ -139,7 +139,7 @@ function TestRow({ test }: { test: Test }) {
   const attempted = !!lastAttempt
 
   return (
-    <div className="border-t border-gray-100 flex items-center gap-4 px-5 py-3.5">
+    <div className="border-t-2 border-gray-100 flex items-center gap-4 px-5 py-3.5 bg-white">
       <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${
         passed ? 'bg-green-500 border-green-500' : attempted ? 'bg-red-100 border-red-300' : 'border-gray-200 bg-white'
       }`}>
