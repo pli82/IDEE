@@ -1,5 +1,4 @@
 // AEP Instruire Online - Prisma Schema
-// PostgreSQL principal, SQLite pentru demo
 
 generator client {
   provider = "prisma-client-js"
@@ -26,15 +25,16 @@ model User {
   updatedAt       DateTime  @updatedAt
   lastLoginAt     DateTime?
 
-  profile         UserProfile?
-  roles           UserRole[]
-  otpTokens       OtpToken[]
-  passwordResets  PasswordReset[]
-  testAttempts    TestAttempt[]
-  progress        Progress[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]      @relation("AuditActor")
-  uploadedFiles   UploadedFile[]
+  profile           UserProfile?
+  roles             UserRole[]
+  otpTokens         OtpToken[]
+  passwordResets    PasswordReset[]
+  testAttempts      TestAttempt[]
+  progress          Progress[]
+  materialProgress  MaterialProgress[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]      @relation("AuditActor")
+  uploadedFiles     UploadedFile[]
 
   @@map("users")
 }
@@ -175,6 +175,7 @@ model Module {
   
   lessons     Lesson[]
   tests       Test[]    @relation("ModuleTests")
+  materials   LessonMaterial[]
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -201,7 +202,6 @@ model Lesson {
   
   progress    Progress[]
   tests       Test[]     @relation("LessonTests")
-  materials   LessonMaterial[]
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -211,15 +211,29 @@ model Lesson {
 
 model LessonMaterial {
   id        String   @id @default(cuid())
-  lessonId  String
-  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   title     String
   url       String
   type      String   @default("PDF")
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
+  progress  MaterialProgress[]
+
   @@map("lesson_materials")
+}
+
+model MaterialProgress {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materialId String
+  material   LessonMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  viewedAt   DateTime @default(now())
+
+  @@unique([userId, materialId])
+  @@map("material_progress")
 }
 
 model Progress {
