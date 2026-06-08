@@ -81,3 +81,18 @@ export async function PUT(req: NextRequest) {
     return serverError()
   }
 }
+export async function DELETE(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return unauthorized()
+  if (!isAdmin(session)) return forbidden()
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'ID lipsă' }, { status: 400 })
+  try {
+    await prisma.user.delete({ where: { id } })
+    await createAuditLog({ actorId: session.id, action: 'USER_DELETED', entityType: 'User', entityId: id, metadata: {} })
+    return ok({ success: true })
+  } catch (e) {
+    console.error('User DELETE error:', e)
+    return serverError()
+  }
+}
