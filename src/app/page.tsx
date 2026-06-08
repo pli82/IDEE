@@ -48,7 +48,7 @@ export default async function HomePage() {
             Platforma este disponibilă
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-balance leading-tight">
-            Instruire electorală profesională
+            Instruire Digitală pentru Experții Electorali
             <br />
             <span className="text-blue-200">pentru toți participanții la procesul electoral</span>
           </h2>
@@ -107,26 +107,7 @@ export default async function HomePage() {
       </section>
 
       {/* Descriere AEP */}
-      <section className="py-16 bg-neutral-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="card p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-aep-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">AEP</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-neutral-800">AEP</h3>
-                <p className="text-sm text-neutral-500">Instituție administrativă autonomă a statului român</p>
-              </div>
-            </div>
-            <p className="text-neutral-600 leading-relaxed text-base">
-              {presentation}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
+            {/* Footer */}
       <footer className="bg-aep-700 text-white mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
