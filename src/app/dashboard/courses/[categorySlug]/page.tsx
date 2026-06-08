@@ -9,9 +9,12 @@ interface Lesson {
   id: string; title: string; description?: string; videoUrl?: string; pdfUrl?: string; order: number
   progress: { status: string; watchedPercent: number }[]
 }
+interface TestAttempt { passed: boolean; score: number; maxScore: number; submittedAt: string }
+interface Test { id: string; title: string; questionsPerAttempt: number; passingScore: number; attempts: TestAttempt[] }
 interface ModuleStats {
   totalVideos: number; completedVideos: number; videoComplete: boolean
   totalMaterials: number; viewedMaterials: number; materialsComplete: boolean
+  hasTests: boolean; testPassed: boolean
   components: number; completedComponents: number; percent: number
   total: number; completed: number
 }
@@ -19,6 +22,7 @@ interface Module {
   id: string; title: string; description?: string
   lessons: Lesson[]
   materials: Material[]
+  tests: Test[]
   stats: ModuleStats
 }
 
@@ -60,7 +64,6 @@ function MaterialsDrawer({ materials, moduleId, onViewed }: {
   onViewed: (materialId: string) => void
 }) {
   const [open, setOpen] = useState(false)
-
   const viewed = materials.filter(m => m.progress.length > 0).length
   const total = materials.length
 
@@ -126,6 +129,53 @@ function MaterialsDrawer({ materials, moduleId, onViewed }: {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function TestRow({ test }: { test: Test }) {
+  const lastAttempt = test.attempts[0]
+  const passed = lastAttempt?.passed
+  const attempted = !!lastAttempt
+
+  return (
+    <div className="border-t border-gray-100 flex items-center gap-4 px-5 py-3.5">
+      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${
+        passed ? 'bg-green-500 border-green-500' : attempted ? 'bg-red-100 border-red-300' : 'border-gray-200 bg-white'
+      }`}>
+        {passed ? (
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <i className="ti ti-clipboard-check" aria-hidden="true" style={{ fontSize: '13px', color: attempted ? '#ef4444' : '#9ca3af' }} />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-900">{test.title}</div>
+        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+          <span className="text-xs text-gray-400">{test.questionsPerAttempt} întrebări · prag {test.passingScore}/{test.questionsPerAttempt}</span>
+          {passed && (
+            <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✓ Promovat</span>
+          )}
+          {attempted && !passed && (
+            <span className="text-xs font-medium text-red-600 bg-red-100 px-2 py-0.5 rounded-full">✗ Nepromovat</span>
+          )}
+          {!attempted && (
+            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Nesusținut</span>
+          )}
+        </div>
+      </div>
+      <Link
+        href={`/dashboard/courses/lesson/${test.id}`}
+        className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors ${
+          passed
+            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+            : 'bg-aep-600 text-white hover:bg-aep-700'
+        }`}
+      >
+        {passed ? 'Reia testul' : attempted ? '↺ Reia testul' : '▶ Start test'}
+      </Link>
     </div>
   )
 }
@@ -208,6 +258,7 @@ export default function CategoryPage() {
             const { stats } = mod
             const hasVideos = stats.totalVideos > 0
             const hasMaterials = stats.totalMaterials > 0
+            const hasTests = mod.tests && mod.tests.length > 0
 
             return (
               <div key={mod.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -233,7 +284,6 @@ export default function CategoryPage() {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
                   {stats.components > 0 && (
                     <div className="mt-3 ml-9 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -243,7 +293,6 @@ export default function CategoryPage() {
                     </div>
                   )}
 
-                  {/* Indicatori mini */}
                   {!isOpen && (
                     <div className="flex items-center gap-4 mt-3 ml-9">
                       {hasVideos && (
@@ -256,6 +305,12 @@ export default function CategoryPage() {
                         <span className={`text-xs flex items-center gap-1 ${stats.materialsComplete ? 'text-green-600' : 'text-gray-400'}`}>
                           <i className="ti ti-files" aria-hidden="true" style={{ fontSize: '12px' }} />
                           {stats.viewedMaterials}/{stats.totalMaterials} materiale
+                        </span>
+                      )}
+                      {hasTests && (
+                        <span className={`text-xs flex items-center gap-1 ${stats.testPassed ? 'text-green-600' : 'text-gray-400'}`}>
+                          <i className="ti ti-clipboard-check" aria-hidden="true" style={{ fontSize: '12px' }} />
+                          {stats.testPassed ? 'Test promovat' : 'Test nesusținut'}
                         </span>
                       )}
                     </div>
@@ -318,12 +373,18 @@ export default function CategoryPage() {
                   />
                 )}
 
+                {/* Teste */}
+                {isOpen && hasTests && mod.tests.map(test => (
+                  <TestRow key={test.id} test={test} />
+                ))}
+
                 {/* Collapsed summary */}
                 {!isOpen && (
                   <div className="border-t border-gray-100 px-5 py-2.5">
                     <span className="text-xs text-gray-400">
                       {mod.lessons.filter(l => l.videoUrl).length} lecții video
                       {mod.materials.length > 0 ? ` · ${mod.materials.length} materiale` : ''}
+                      {hasTests ? ` · ${mod.tests.length} ${mod.tests.length === 1 ? 'test' : 'teste'}` : ''}
                     </span>
                   </div>
                 )}
