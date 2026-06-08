@@ -2,22 +2,18 @@ import { NextRequest } from 'next/server'
 import { ok, unauthorized, serverError } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
     if (!session) return unauthorized()
-
     const { searchParams } = new URL(req.url)
     const categorySlug = searchParams.get('category')
     const categoryId = searchParams.get('categoryId')
-
     const whereCategory = categorySlug
       ? { slug: categorySlug }
       : categoryId ? { id: categoryId } : undefined
-
     const category = whereCategory
       ? await prisma.contentCategory.findFirst({ where: whereCategory })
       : null
@@ -40,6 +36,15 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        materials: {
+          orderBy: { order: 'asc' },
+          include: {
+            progress: {
+              where: { userId: session.id },
+              select: { id: true, viewedAt: true },
+            },
+          },
+        },
         _count: {
           select: { lessons: true },
         },
@@ -47,13 +52,52 @@ export async function GET(req: NextRequest) {
     })
 
     const modulesWithStats = modules.map((mod) => {
-      const total = mod.lessons.length
-      const completed = mod.lessons.filter(
+      const videoLessons = mod.lessons.filter(l => l.videoUrl)
+      const totalVideos = videoLessons.length
+      const completedVideos = videoLessons.filter(
         (l) => l.progress[0]?.status === 'COMPLETED'
       ).length
+      const videoComplete = totalVideos > 0 && completedVideos === totalVideos
+
+      const totalMaterials = mod.materials.length
+      const viewedMaterials = mod.materials.filter(m => m.progress.length > 0).length
+      const materialsComplete = totalMaterials > 0 && viewedMaterials === totalMaterials
+
+      const hasTest = false
+      const testPassed = false
+
+      // Progres overall: fiecare componentă valorează 1/3 dacă există
+      let components = 0
+      let completedComponents = 0
+
+      if (totalVideos > 0) {
+        components++
+        if (videoComplete) completedComponents++
+      }
+      if (totalMaterials > 0) {
+        components++
+        if (materialsComplete) completedComponents++
+      }
+
+      const percent = components > 0
+        ? Math.round((completedComponents / components) * 100)
+        : 0
+
       return {
         ...mod,
-        stats: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 },
+        stats: {
+          totalVideos,
+          completedVideos,
+          videoComplete,
+          totalMaterials,
+          viewedMaterials,
+          materialsComplete,
+          components,
+          completedComponents,
+          percent,
+          total: mod.lessons.length,
+          completed: completedVideos,
+        },
       }
     })
 
