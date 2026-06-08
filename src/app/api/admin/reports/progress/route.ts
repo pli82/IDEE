@@ -14,54 +14,52 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to') || new Date().toISOString().slice(0, 10)
 
   try {
-    const progress = await prisma.progress.findMany({
-      where: {
-  updatedAt: { gte: new Date(from), lte: new Date(to + 'T23:59:59') },
-},
-      include: {
-        user: {
-          include: {
-            profile: { select: { nume: true, prenume: true, judetCode: true } },
-          },
-        },
-        lesson: {
-          select: {
-            title: true,
-            module: {
-              select: {
-                title: true,
-                category: { select: { title: true } },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    })
+    const progress = await prisma.$queryRaw`
+      SELECT 
+        p.id, p.status, p."watchedPercent", p."updatedAt",
+        u.email,
+        up.nume, up.prenume, up."judetCode",
+        l.title as lesson_title,
+        m.title as module_title,
+        c.title as category_title
+      FROM progress p
+      JOIN users u ON p."userId" = u.id
+      LEFT JOIN user_profiles up ON u.id = up."userId"
+      JOIN lessons l ON p."lessonId" = l.id
+      JOIN modules m ON l."moduleId" = m.id
+      JOIN content_categories c ON m."categoryId" = c.id
+      WHERE p."updatedAt" >= ${new Date(from)}
+        AND p."updatedAt" <= ${new Date(to + 'T23:59:59')}
+      ORDER BY p."updatedAt" DESC
+    ` as any[]
 
-    const rows = (progress as any[]).map(p => ({
-  'Nume': p.user.profile?.nume || '—',
-  'Prenume': p.user.profile?.prenume || '—',
-  'Email': p.user.email,
-  'Județ': p.user.profile?.judetCode || '—',
-  'Categorie': p.lesson?.module?.category?.title || '—',
-  'Modul': p.lesson?.module?.title || '—',
-  'Lecție': p.lesson?.title || '—',
-  'Status': p.status === 'COMPLETED' ? 'Completat' : p.status === 'IN_PROGRESS' ? 'În curs' : 'Neînceput',
-  'Progres (%)': Math.round(p.watchedPercent),
-  'Ultima accesare': p.updatedAt.toISOString().split('T')[0],
-}))
+    const rows = progress.map((p: any) => ({
+      'Nume': p.nume || '—',
+      'Prenume': p.prenume || '—',
+      'Email': p.email,
+      'Județ': p.judetCode || '—',
+      'Categorie': p.category_title || '—',
+      'Modul': p.module_title || '—',
+      'Lecție': p.lesson_title || '—',
+      'Status': p.status === 'COMPLETED' ? 'Completat' : p.status === 'IN_PROGRESS' ? 'În curs' : 'Neînceput',
+      'Progres (%)': Math.round(Number(p.watchedPercent)),
+      'Ultima accesare': new Date(p.updatedAt).toISOString().split('T')[0],
+    }))
 
-if (format === 'json') {
-  return NextResponse.json({ data: rows })
-}
+    if (format === 'json') {
+      return NextResponse.json({ data: rows })
+    }
 
     if (format === 'csv') {
-      if (rows.length === 0) return new NextResponse('\uFEFFNu există date', { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="progres_instruire.csv"' } })
+      if (rows.length === 0) return new NextResponse('\uFEFFNu există date', {
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="progres_instruire.csv"' }
+      })
       const headers = Object.keys(rows[0]).join(',')
       const csvRows = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       const csv = '\uFEFF' + [headers, ...csvRows].join('\n')
-      return new NextResponse(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="progres_instruire.csv"' } })
+      return new NextResponse(csv, {
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="progres_instruire.csv"' }
+      })
     }
 
     const workbook = new ExcelJS.Workbook()
@@ -80,7 +78,12 @@ if (format === 'json') {
       sheet.addRow(['Nu există date pentru perioada selectată'])
     }
     const buffer = await workbook.xlsx.writeBuffer()
-    return new NextResponse(buffer as any, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="progres_instruire.xlsx"' } })
+    return new NextResponse(buffer as any, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="progres_instruire.xlsx"'
+      }
+    })
   } catch (e) {
     console.error('Progress report error:', e)
     return new NextResponse('Export failed: ' + String(e), { status: 500 })
