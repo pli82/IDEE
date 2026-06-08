@@ -37,11 +37,13 @@ export default function AdminReports() {
     } finally { setStatsLoading(false) }
   }
 
-  const loadTable = async () => {
+  const loadTable = async (tab: typeof activeTab) => {
     setTableLoading(true)
     setRawData([])
+    if (tab === 'users') setUsersData([])
+    else setTestsData([])
     try {
-      const endpoint = activeTab === 'users' ? 'progress' : 'tests'
+      const endpoint = tab === 'users' ? 'progress' : 'tests'
       const r = await fetch(
         `/api/admin/reports/${endpoint}?format=json&from=${dateFrom}&to=${dateTo}`,
         { credentials: 'include' }
@@ -50,7 +52,7 @@ export default function AdminReports() {
       const data = d.data || []
       setRawData(data)
 
-      if (activeTab === 'users') {
+      if (tab === 'users') {
         const userMap: Record<string, UserProgress> = {}
         data.forEach((row: any) => {
           const key = row['Email']
@@ -91,7 +93,7 @@ export default function AdminReports() {
   }
 
   useEffect(() => {
-    if (activeTab !== 'stats') loadTable()
+    if (activeTab !== 'stats') loadTable(activeTab)
   }, [activeTab, dateFrom, dateTo])
 
   const exportData = (format: 'csv' | 'xlsx') => {
