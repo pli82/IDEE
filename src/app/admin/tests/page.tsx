@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 interface Lesson { id: string; title: string; module: { title: string } }
 interface Test {
   id: string; title: string; published: boolean; questionsPerAttempt: number
-  passingScore: number; lessonId?: string; lesson?: { title: string }
+  passingScore: number; lessonId?: string; lesson?: { title: string; module?: { title: string } }
   _count: { questions: number; attempts: number }
 }
 interface Question {
@@ -34,9 +34,12 @@ export default function AdminTests() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [showTestForm, setShowTestForm] = useState(false)
   const [showQuestionForm, setShowQuestionForm] = useState(false)
+  const [showLessonForm, setShowLessonForm] = useState(false)
   const [editQuestion, setEditQuestion] = useState<Question | null>(null)
   const [saving, setSaving] = useState(false)
+  const [savingLesson, setSavingLesson] = useState(false)
   const [error, setError] = useState('')
+  const [selectedLessonId, setSelectedLessonId] = useState('')
 
   const [testForm, setTestForm] = useState({
     title: '', questionsPerAttempt: 10, passingScore: 7, published: false, lessonId: '',
@@ -68,6 +71,7 @@ export default function AdminTests() {
 
   const selectTest = (test: Test) => {
     setSelectedTest(test)
+    setSelectedLessonId(test.lessonId || '')
     loadQuestions(test.id)
   }
 
@@ -83,7 +87,6 @@ export default function AdminTests() {
         published: testForm.published,
       }
       if (testForm.lessonId) body.lessonId = testForm.lessonId
-
       const r = await apiFetch('/api/admin/tests?resource=tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,17 +100,37 @@ export default function AdminTests() {
     } finally { setSaving(false) }
   }
 
+  const saveLesson = async () => {
+    if (!selectedTest) return
+    setSavingLesson(true)
+    try {
+      const body: any = { lessonId: selectedLessonId || null }
+      const r = await apiFetch(`/api/admin/tests?resource=tests&id=${selectedTest.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (r.ok) {
+        const updatedLesson = lessons.find(l => l.id === selectedLessonId)
+        setSelectedTest(prev => prev ? {
+          ...prev,
+          lessonId: selectedLessonId || undefined,
+          lesson: updatedLesson ? { title: updatedLesson.title, module: updatedLesson.module } : undefined,
+        } : null)
+        await loadTests()
+        setShowLessonForm(false)
+      }
+    } finally { setSavingLesson(false) }
+  }
+
   const saveQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTest) return
     setError('')
-
-    // Validări
     const filledOptions = qForm.options.filter(o => o.text.trim())
     if (filledOptions.length < 2) { setError('Adaugă cel puțin 2 variante de răspuns'); return }
     const hasCorrect = qForm.options.some(o => o.isCorrect && o.text.trim())
     if (!hasCorrect) { setError('Selectează cel puțin un răspuns corect'); return }
-
     setSaving(true)
     try {
       const body = {
@@ -121,12 +144,10 @@ export default function AdminTests() {
           order: i,
         })),
       }
-
       const url = editQuestion
         ? `/api/admin/tests?resource=questions&id=${editQuestion.id}`
         : '/api/admin/tests?resource=questions'
       const method = editQuestion ? 'PUT' : 'POST'
-
       const r = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -134,7 +155,6 @@ export default function AdminTests() {
       })
       const d = await r.json()
       if (!r.ok) { setError(d.error || 'Eroare la salvare'); return }
-
       setShowQuestionForm(false)
       setEditQuestion(null)
       setQForm(emptyQForm())
@@ -157,7 +177,6 @@ export default function AdminTests() {
       explanation: q.explanation || '',
       options: [
         ...q.options.map(o => ({ text: o.text, isCorrect: o.isCorrect })),
-        // completează până la 4 dacă sunt mai puține
         ...Array(Math.max(0, 4 - q.options.length)).fill({ text: '', isCorrect: false }),
       ],
     })
@@ -174,20 +193,20 @@ export default function AdminTests() {
     if (selectedTest) loadQuestions(selectedTest.id)
   }
 
-const deleteQuestion = async (id: string, permanent: boolean) => {
-  if (permanent) {
-    if (!confirm('Ștergi DEFINITIV această întrebare și toate răspunsurile din rapoarte? Acțiunea este ireversibilă.')) return
-    await apiFetch(`/api/admin/tests?resource=questions&id=${id}&permanent=true`, { method: 'DELETE' })
-  } else {
-    if (!confirm('Dezactivezi această întrebare? Nu va mai apărea în teste noi, dar răspunsurile vechi rămân în rapoarte.')) return
-    await apiFetch(`/api/admin/tests?resource=questions&id=${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: false }),
-    })
+  const deleteQuestion = async (id: string, permanent: boolean) => {
+    if (permanent) {
+      if (!confirm('Ștergi DEFINITIV această întrebare și toate răspunsurile din rapoarte? Acțiunea este ireversibilă.')) return
+      await apiFetch(`/api/admin/tests?resource=questions&id=${id}&permanent=true`, { method: 'DELETE' })
+    } else {
+      if (!confirm('Dezactivezi această întrebare?')) return
+      await apiFetch(`/api/admin/tests?resource=questions&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: false }),
+      })
+    }
+    if (selectedTest) loadQuestions(selectedTest.id)
   }
-  if (selectedTest) loadQuestions(selectedTest.id)
-}
 
   const toggleTestPublished = async (test: Test) => {
     await apiFetch(`/api/admin/tests?resource=tests&id=${test.id}`, {
@@ -198,19 +217,15 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
     loadTests()
   }
 
-  // Opțiuni formular întrebare
   const addOption = () => setQForm(p => ({ ...p, options: [...p.options, { text: '', isCorrect: false }] }))
-
   const removeOption = (idx: number) => {
     if (qForm.options.length <= 2) return
     setQForm(p => ({ ...p, options: p.options.filter((_, i) => i !== idx) }))
   }
-
   const updateOption = (idx: number, field: 'text' | 'isCorrect', value: any) => {
     setQForm(p => {
       const opts = [...p.options]
       opts[idx] = { ...opts[idx], [field]: value }
-      // Single: debifează celelalte când se bifează una
       if (field === 'isCorrect' && value && p.type === 'SINGLE') {
         opts.forEach((o, i) => { if (i !== idx) o.isCorrect = false })
       }
@@ -243,26 +258,28 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                 className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedTest?.id === test.id ? 'bg-aep-50 border-l-2 border-aep-600' : ''}`}
                 onClick={() => selectTest(test)}>
                 <div className="font-medium text-sm text-gray-900">{test.title}</div>
-                {test.lesson && (
+                {test.lesson ? (
                   <div className="text-xs text-aep-600 mt-0.5">📚 {test.lesson.title}</div>
+                ) : (
+                  <div className="text-xs text-gray-400 mt-0.5">Nicio lecție asociată</div>
                 )}
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-gray-500">{test._count.questions} întrebări</span>
                   <span className="text-xs text-gray-300">·</span>
                   <span className="text-xs text-gray-500">{test._count.attempts} încercări</span>
                   <button onClick={e => { e.stopPropagation(); toggleTestPublished(test) }}
-  className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-  {test.published ? 'Activ' : 'Draft'}
-</button>
-<button onClick={async e => {
-  e.stopPropagation()
-  if (!confirm('Ștergi testul și toate întrebările lui?')) return
-  await apiFetch(`/api/admin/tests?resource=tests&id=${test.id}`, { method: 'DELETE' })
-  if (selectedTest?.id === test.id) setSelectedTest(null)
-  loadTests()
-}} className="text-xs px-1.5 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
-  Șterge
-</button>
+                    className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {test.published ? 'Activ' : 'Draft'}
+                  </button>
+                  <button onClick={async e => {
+                    e.stopPropagation()
+                    if (!confirm('Ștergi testul și toate întrebările lui?')) return
+                    await apiFetch(`/api/admin/tests?resource=tests&id=${test.id}`, { method: 'DELETE' })
+                    if (selectedTest?.id === test.id) setSelectedTest(null)
+                    loadTests()
+                  }} className="text-xs px-1.5 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
+                    Șterge
+                  </button>
                 </div>
               </div>
             ))}
@@ -273,15 +290,31 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
         <div className="lg:col-span-2">
           {selectedTest ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <div>
+              <div className="p-4 border-b border-gray-100 flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="font-semibold text-gray-900">{selectedTest.title}</div>
                   <div className="text-xs text-gray-500 mt-0.5">
                     Promovare: {selectedTest.passingScore}/{selectedTest.questionsPerAttempt} · {questions.length} întrebări în total
                   </div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    {selectedTest.lesson ? (
+                      <span className="text-xs text-aep-600 bg-aep-50 px-2 py-0.5 rounded-full border border-aep-100">
+                        📚 {selectedTest.lesson.module?.title ? `${selectedTest.lesson.module.title} → ` : ''}{selectedTest.lesson.title}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                        Nicio lecție asociată
+                      </span>
+                    )}
+                    <button
+                      onClick={() => { setSelectedLessonId(selectedTest.lessonId || ''); setShowLessonForm(true) }}
+                      className="text-xs text-aep-600 hover:underline">
+                      ✏️ Modifică lecția
+                    </button>
+                  </div>
                 </div>
                 <button onClick={openAddQuestion}
-                  className="px-3 py-1.5 bg-aep-600 text-white rounded-lg text-xs font-medium hover:bg-aep-700">
+                  className="px-3 py-1.5 bg-aep-600 text-white rounded-lg text-xs font-medium hover:bg-aep-700 shrink-0">
                   + Întrebare nouă
                 </button>
               </div>
@@ -311,14 +344,14 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                             className={`text-xs px-2 py-0.5 rounded-full ${q.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {q.active ? 'Activ' : 'Inactiv'}
                           </button>
-<button onClick={() => deleteQuestion(q.id, false)}
-  className="text-xs px-2 py-0.5 rounded border border-orange-200 text-orange-500 hover:bg-orange-50">
-  Dezactivează
-</button>
-<button onClick={() => deleteQuestion(q.id, true)}
-  className="text-xs px-2 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
-  Șterge definitiv
-</button>
+                          <button onClick={() => deleteQuestion(q.id, false)}
+                            className="text-xs px-2 py-0.5 rounded border border-orange-200 text-orange-500 hover:bg-orange-50">
+                            Dezactivează
+                          </button>
+                          <button onClick={() => deleteQuestion(q.id, true)}
+                            className="text-xs px-2 py-0.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
+                            Șterge definitiv
+                          </button>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 ml-5">
@@ -348,7 +381,41 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
         </div>
       </div>
 
-      {/* ── Modal test nou ────────────────────────────────── */}
+      {/* Modal modificare lecție asociată */}
+      {showLessonForm && selectedTest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold mb-1">Modifică lecția asociată</h2>
+            <p className="text-sm text-gray-500 mb-4">Test: <strong>{selectedTest.title}</strong></p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">Lecție</label>
+                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  value={selectedLessonId}
+                  onChange={e => setSelectedLessonId(e.target.value)}>
+                  <option value="">— Fără lecție asociată —</option>
+                  {lessons.map(l => (
+                    <option key={l.id} value={l.id}>
+                      {l.module?.title ? `${l.module.title} → ` : ''}{l.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Testul va apărea pe pagina lecției selectate</p>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setShowLessonForm(false)}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Anulează</button>
+                <button onClick={saveLesson} disabled={savingLesson}
+                  className="px-4 py-2 text-sm bg-aep-600 text-white rounded-lg hover:bg-aep-700 disabled:opacity-50">
+                  {savingLesson ? 'Se salvează...' : 'Salvează'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal test nou */}
       {showTestForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
@@ -360,7 +427,6 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   value={testForm.title} onChange={e => setTestForm(p => ({ ...p, title: e.target.value }))} />
               </div>
-
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Asociază cu lecția</label>
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -375,7 +441,6 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                 </select>
                 <p className="text-xs text-gray-400 mt-1">Testul va apărea pe pagina lecției selectate</p>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-600 block mb-1">Întrebări per test</label>
@@ -392,15 +457,12 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                     onChange={e => setTestForm(p => ({ ...p, passingScore: +e.target.value }))} />
                 </div>
               </div>
-
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={testForm.published}
                   onChange={e => setTestForm(p => ({ ...p, published: e.target.checked }))} />
                 Publică imediat (vizibil utilizatorilor)
               </label>
-
               {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
-
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => setShowTestForm(false)}
                   className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Anulează</button>
@@ -414,7 +476,7 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
         </div>
       )}
 
-      {/* ── Modal întrebare ───────────────────────────────── */}
+      {/* Modal întrebare */}
       {showQuestionForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
@@ -422,14 +484,12 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
               {editQuestion ? 'Editează întrebarea' : 'Întrebare nouă'}
             </h2>
             <form onSubmit={saveQuestion} className="space-y-4">
-
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Textul întrebării *</label>
                 <textarea placeholder="Scrie întrebarea aici..." required rows={3}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   value={qForm.text} onChange={e => setQForm(p => ({ ...p, text: e.target.value }))} />
               </div>
-
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Tip răspuns</label>
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -439,7 +499,6 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                   <option value="MULTIPLE">Mai multe răspunsuri corecte</option>
                 </select>
               </div>
-
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs text-gray-600">
@@ -453,7 +512,6 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                     + Adaugă variantă
                   </button>
                 </div>
-
                 <div className="space-y-2">
                   {qForm.options.map((opt, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -477,20 +535,15 @@ const deleteQuestion = async (id: string, permanent: boolean) => {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  ◉ = răspuns corect (selectat) · Minim 2 variante
-                </p>
+                <p className="text-xs text-gray-400 mt-2">◉ = răspuns corect · Minim 2 variante</p>
               </div>
-
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Explicație (opțional)</label>
                 <textarea placeholder="Explicație afișată după răspuns..." rows={2}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   value={qForm.explanation} onChange={e => setQForm(p => ({ ...p, explanation: e.target.value }))} />
               </div>
-
               {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
-
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => { setShowQuestionForm(false); setEditQuestion(null); setError('') }}
                   className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Anulează</button>
