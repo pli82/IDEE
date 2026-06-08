@@ -11,6 +11,7 @@ const ProfileSchema = z.object({
   sex: z.enum(['M', 'F']),
   judetCode: z.string().min(1),
   studii: z.string().min(1),
+  calitate: z.string().min(1, 'Calitatea este obligatorie'),
   serieCI: z.string().max(10).optional(),
   numarCI: z.string().max(10).optional(),
   dataExpirareCI: z.string().optional().nullable(),
@@ -40,7 +41,7 @@ export async function PUT(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Date invalide', details: parsed.error.errors }, { status: 400 })
     }
-    const { prenume, nume, dataNasterii, sex, judetCode, studii, serieCI, numarCI, dataExpirareCI, gdprConsent } = parsed.data
+    const { prenume, nume, dataNasterii, sex, judetCode, studii, calitate, serieCI, numarCI, dataExpirareCI, gdprConsent } = parsed.data
 
     await prisma.userProfile.upsert({
       where: { userId: session.id },
@@ -49,7 +50,7 @@ export async function PUT(req: NextRequest) {
         prenume, nume,
         dataNasterii: new Date(dataNasterii),
         sex: sex as any,
-        judetCode, studii,
+        judetCode, studii, calitate,
         serieCI: serieCI || null,
         numarCI: numarCI || null,
         dataExpirareCI: dataExpirareCI ? new Date(dataExpirareCI) : null,
@@ -61,7 +62,7 @@ export async function PUT(req: NextRequest) {
         prenume, nume,
         dataNasterii: new Date(dataNasterii),
         sex: sex as any,
-        judetCode, studii,
+        judetCode, studii, calitate,
         serieCI: serieCI || null,
         numarCI: numarCI || null,
         dataExpirareCI: dataExpirareCI ? new Date(dataExpirareCI) : null,
