@@ -45,6 +45,21 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        tests: {
+          where: { published: true },
+          select: {
+            id: true,
+            title: true,
+            questionsPerAttempt: true,
+            passingScore: true,
+            attempts: {
+              where: { userId: session.id },
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { passed: true, score: true, maxScore: true, submittedAt: true },
+            },
+          },
+        },
         _count: {
           select: { lessons: true },
         },
@@ -63,10 +78,9 @@ export async function GET(req: NextRequest) {
       const viewedMaterials = mod.materials.filter(m => m.progress.length > 0).length
       const materialsComplete = totalMaterials > 0 && viewedMaterials === totalMaterials
 
-      const hasTest = false
-      const testPassed = false
+      const hasTests = mod.tests.length > 0
+      const testPassed = hasTests && mod.tests.some(t => t.attempts[0]?.passed)
 
-      // Progres overall: fiecare componentă valorează 1/3 dacă există
       let components = 0
       let completedComponents = 0
 
@@ -77,6 +91,10 @@ export async function GET(req: NextRequest) {
       if (totalMaterials > 0) {
         components++
         if (materialsComplete) completedComponents++
+      }
+      if (hasTests) {
+        components++
+        if (testPassed) completedComponents++
       }
 
       const percent = components > 0
@@ -92,6 +110,8 @@ export async function GET(req: NextRequest) {
           totalMaterials,
           viewedMaterials,
           materialsComplete,
+          hasTests,
+          testPassed,
           components,
           completedComponents,
           percent,
