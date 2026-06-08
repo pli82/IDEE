@@ -20,7 +20,8 @@ export default function AdminReports() {
   const [stats, setStats] = useState<any>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [rawData, setRawData] = useState<any[]>([])
-  const [tableData, setTableData] = useState<any[]>([])
+  const [usersData, setUsersData] = useState<UserProgress[]>([])
+  const [testsData, setTestsData] = useState<any[]>([])
   const [tableLoading, setTableLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [sortCol, setSortCol] = useState('')
@@ -51,7 +52,6 @@ export default function AdminReports() {
       setRawData(data)
 
       if (activeTab === 'users') {
-        // Grupare per user
         const userMap: Record<string, UserProgress> = {}
         data.forEach((row: any) => {
           const key = row['Email']
@@ -78,16 +78,15 @@ export default function AdminReports() {
             procent: row['Procent'],
           })
         })
-        // Calculează overall
         Object.values(userMap).forEach(u => {
           u.totalModules = u.modules.length
           u.completedModules = u.modules.filter(m => m.procent === '100%').length
           const percents = u.modules.map(m => parseInt(m.procent) || 0)
           u.overallPercent = percents.length > 0 ? Math.round(percents.reduce((a, b) => a + b, 0) / percents.length) : 0
         })
-        setTableData(Object.values(userMap))
+        setUsersData(Object.values(userMap))
       } else {
-        setTableData(data)
+        setTestsData(data)
       }
     } finally { setTableLoading(false) }
   }
@@ -110,19 +109,19 @@ export default function AdminReports() {
     setExpandedUsers(p => ({ ...p, [email]: !p[email] }))
   }
 
-  const filteredUsers = (tableData as UserProgress[])
+  const filteredUsers = usersData
     .filter(u => !search || [u.email, u.nume, u.prenume, u.judet, u.calitate].some(v => v.toLowerCase().includes(search.toLowerCase())))
 
-  const filteredTests = activeTab === 'tests' ? (tableData as any[])
+  const filteredTests = testsData
     .filter(row => !search || Object.values(row).some(v => String(v).toLowerCase().includes(search.toLowerCase())))
     .sort((a, b) => {
       if (!sortCol) return 0
       const va = String(a[sortCol] ?? '').toLowerCase()
       const vb = String(b[sortCol] ?? '').toLowerCase()
       return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
-    }) : []
+    })
 
-  const testColumns = tableData.length > 0 && activeTab === 'tests' ? Object.keys(tableData[0]) : []
+  const testColumns = testsData.length > 0 ? Object.keys(testsData[0]) : []
 
   return (
     <div className="space-y-6">
@@ -169,7 +168,7 @@ export default function AdminReports() {
         )}
         {activeTab !== 'stats' && (
           <div className="text-xs text-gray-400 self-end pb-1.5">
-            {activeTab === 'users' ? filteredUsers.length : filteredTests.length} înregistrări
+            {activeTab === 'users' ? filteredUsers.length : activeTab === 'tests' ? filteredTests.length : 0} înregistrări
           </div>
         )}
       </div>
