@@ -42,7 +42,6 @@ export default function ProfilePage() {
           studii: p.studii || '', calitate: p.calitate || '',
           phone: d.data.phone || '',
         })
-        // Verificare CI
         if (p.dataExpirareCI) {
           const expDate = new Date(p.dataExpirareCI)
           const now = new Date()
@@ -67,6 +66,16 @@ export default function ProfilePage() {
     else setError(d.error || 'Eroare la salvare')
   }
 
+  const handleDeleteAccount = async () => {
+    if (!confirm('Ești sigur că vrei să ștergi contul și toate datele asociate?\n\nAceastă acțiune este ireversibilă.')) return
+    const r = await fetch('/api/user/delete-account', { method: 'DELETE', credentials: 'include' })
+    if (r.ok) {
+      window.location.href = '/'
+    } else {
+      alert('Eroare la ștergerea contului. Contactați administratorul.')
+    }
+  }
+
   const fi = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }))
 
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-aep-600" /></div>
@@ -80,7 +89,7 @@ export default function ProfilePage() {
 
       {ciWarning && (
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-800">
-          ⚠️ <strong>Atenție:</strong> Cartea dvs. de identitate este expirată sau expiră în curând. 
+          ⚠️ <strong>Atenție:</strong> Cartea dvs. de identitate este expirată sau expiră în curând.
           Pentru actualizarea datelor, vă rugăm să contactați AEP conform instrucțiunilor.
         </div>
       )}
@@ -165,6 +174,43 @@ export default function ProfilePage() {
           {saving ? 'Se salvează...' : 'Salvează modificările'}
         </button>
       </form>
+
+      {/* Secțiune GDPR */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Datele mele personale (GDPR)</h2>
+        <p className="text-sm text-gray-500">
+          Conform GDPR (Regulamentul UE 2016/679), aveți dreptul de a accesa, rectifica și șterge datele personale stocate de AEP Instruire Online.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a
+            href="/api/user/my-data"
+            download
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-aep-600 text-white rounded-lg text-sm font-medium hover:bg-aep-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Descarcă datele mele
+          </a>
+
+          <button
+            onClick={handleDeleteAccount}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Șterge contul meu
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400">
+          Fișierul descărcat conține toate datele personale, progresul lecțiilor, materialele vizualizate și rezultatele testelor.
+          Pentru exercitarea altor drepturi GDPR, contactați{' '}
+          <a href="mailto:dpo@aep.ro" className="text-aep-600 hover:underline">dpo@aep.ro</a>.
+        </p>
+      </div>
     </div>
   )
 }
