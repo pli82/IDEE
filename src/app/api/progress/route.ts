@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ok, unauthorized, serverError } from '@/lib/api'
-
 export async function GET(_req: NextRequest) {
   const session = await getSession()
   if (!session) return unauthorized()
@@ -21,7 +20,6 @@ export async function GET(_req: NextRequest) {
       WHERE p."userId" = ${session.id}
       ORDER BY p."updatedAt" DESC
     ` as any[]
-
     const mapped = lessonProgress.map((p: any) => ({
       lessonId: p.lessonId,
       watchedPercent: Number(p.watchedPercent),
@@ -35,12 +33,17 @@ export async function GET(_req: NextRequest) {
         },
       },
     }))
-
-    const totalLessons = await prisma.lesson.count({ where: { published: true } })
-    const completedLessons = mapped.filter((p: any) => p.status === 'COMPLETED').length
+    const totalLessons = await prisma.lesson.count({
+      where: {
+        published: true,
+        module: { published: true },
+      },
+    })
+    const completedLessons = new Set(
+      mapped.filter((p: any) => p.status === 'COMPLETED').map((p: any) => p.lessonId)
+    ).size
     const passedTests = await prisma.testAttempt.count({ where: { userId: session.id, passed: true } })
     const failedTests = await prisma.testAttempt.count({ where: { userId: session.id, passed: false, submittedAt: { not: null } } })
-
     return ok({
       lessonProgress: mapped,
       totalLessons,
