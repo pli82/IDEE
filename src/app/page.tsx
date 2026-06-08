@@ -48,7 +48,7 @@ export default async function HomePage() {
             Platforma este disponibilă
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-balance leading-tight">
-            Instruire Digitală pentru Experții Electorali
+            Instruire Digitală pentru Experți Electorali
            
           </h2>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
