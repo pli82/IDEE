@@ -4,10 +4,17 @@ import { useRouter } from 'next/navigation'
 import { COUNTIES } from '@/lib/counties'
 
 const STUDII_OPTIONS = ['Liceale', 'Postliceale', 'Universitare (licență)', 'Master', 'Doctorat', 'Alt nivel']
+const CALITATE_OPTIONS = [
+  'Expert electoral înscris în Corpul experților electorali',
+  'Persoană care dorește să participe la examenul de admitere în Corpul experților electorali',
+  'Operator de calculator în cadrul birourilor electorale',
+  'Membru birou electoral',
+  'Alt rol în procesul electoral',
+]
 
 export default function ProfileCompletePage() {
   const router = useRouter()
-  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', gdprConsent: false })
+  const [form, setForm] = useState({ prenume: '', nume: '', dataNasterii: '', sex: '', judetCode: '', studii: '', calitate: '', gdprConsent: false })
   const [userData, setUserData] = useState<{ email: string; phone: string } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -101,6 +108,13 @@ export default function ProfileCompletePage() {
                 <select required className="input" value={form.studii} onChange={e => fi('studii', e.target.value)}>
                   <option value="">Selectați</option>
                   {STUDII_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Calitate *</label>
+                <select required className="input" value={form.calitate} onChange={e => fi('calitate', e.target.value)}>
+                  <option value="">Selectați calitatea</option>
+                  {CALITATE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
