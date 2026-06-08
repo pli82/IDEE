@@ -1,4 +1,3 @@
-// v2
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 
@@ -46,9 +45,13 @@ function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string
   const [error, setError] = useState('')
 
   const loadMaterials = async () => {
-    const r = await apiFetch(`/api/courses/modules/${moduleId}/materials`)
-    const d = await r.json()
-    setMaterials(d.data || [])
+    try {
+      const r = await apiFetch(`/api/courses/modules/${moduleId}/materials`)
+      const d = await r.json()
+      setMaterials(Array.isArray(d.data) ? d.data : [])
+    } catch {
+      setMaterials([])
+    }
     setLoading(false)
   }
 
