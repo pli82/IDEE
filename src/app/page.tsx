@@ -49,13 +49,9 @@ export default async function HomePage() {
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-balance leading-tight">
             Instruire Digitală pentru Experții Electorali
-            <br />
-            <span className="text-blue-200">pentru toți participanții la procesul electoral</span>
+           
           </h2>
-          <p className="text-lg text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-            {presentation.split('.')[0] + '.'}
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/auth/register"
               className="w-full sm:w-auto btn-lg bg-white text-aep-600 hover:bg-blue-50 font-semibold rounded-lg px-8 py-3.5 text-base inline-flex items-center justify-center gap-2 transition-colors shadow-lg"
