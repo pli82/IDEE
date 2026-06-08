@@ -3,10 +3,10 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 
 interface Category { id: string; title: string; slug: string; description?: string; published: boolean; order: number; _count: { modules: number } }
 interface Module { id: string; title: string; description?: string; published: boolean; categoryId: string; category: { title: string }; _count: { lessons: number } }
-interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; pdfUrl?: string; externalUrl?: string; order: number; minWatchPercentForTest: number }
+interface Lesson { id: string; title: string; description?: string; published: boolean; moduleId: string; module: { title: string }; videoUrl?: string; externalUrl?: string; order: number; minWatchPercentForTest: number }
 interface LessonMaterial { id: string; title: string; url: string; type: string; order: number }
 
-const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', pdfUrl: '', externalUrl: '', minWatchPercentForTest: 0 }
+const emptyForm = { title: '', slug: '', description: '', order: 0, published: false, categoryId: '', moduleId: '', videoUrl: '', externalUrl: '', minWatchPercentForTest: 0 }
 const apiFetch = (url: string, options: RequestInit = {}) => fetch(url, { ...options, credentials: 'include' })
 
 function ColumnDropdown({ label, children }: { label: string; children: React.ReactNode }) {
@@ -35,7 +35,7 @@ function ColumnDropdown({ label, children }: { label: string; children: React.Re
   )
 }
 
-function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: () => void }) {
+function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string; moduleTitle: string; onClose: () => void }) {
   const [materials, setMaterials] = useState<LessonMaterial[]>([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
@@ -45,13 +45,13 @@ function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: ()
   const [error, setError] = useState('')
 
   const loadMaterials = async () => {
-    const r = await apiFetch(`/api/courses/lessons/${lessonId}/materials`)
+    const r = await apiFetch(`/api/courses/modules/${moduleId}/materials`)
     const d = await r.json()
     setMaterials(d.data || [])
     setLoading(false)
   }
 
-  useEffect(() => { loadMaterials() }, [lessonId])
+  useEffect(() => { loadMaterials() }, [moduleId])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,7 +74,7 @@ function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: ()
   const handleAdd = async () => {
     if (!newTitle || !newUrl) { setError('Titlu și URL obligatorii'); return }
     setError('')
-    const r = await apiFetch(`/api/courses/lessons/${lessonId}/materials`, {
+    const r = await apiFetch(`/api/courses/modules/${moduleId}/materials`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle, url: newUrl, type: newType, order: materials.length }),
@@ -87,17 +87,18 @@ function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: ()
 
   const handleDelete = async (id: string) => {
     if (!confirm('Ștergi acest material?')) return
-    await apiFetch(`/api/courses/lessons/${lessonId}/materials?id=${id}`, { method: 'DELETE' })
+    await apiFetch(`/api/courses/modules/${moduleId}/materials?id=${id}`, { method: 'DELETE' })
     loadMaterials()
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Materiale lecție</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-bold">Materiale instruire</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
+        <p className="text-xs text-gray-500 mb-4">Modul: <strong>{moduleTitle}</strong></p>
 
         {loading ? (
           <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-aep-600" /></div>
@@ -107,7 +108,7 @@ function MaterialsManager({ lessonId, onClose }: { lessonId: string; onClose: ()
               <p className="text-sm text-gray-400 text-center py-4">Niciun material adăugat încă</p>
             ) : (
               <div className="space-y-2 mb-4">
-                {materials.map((m, i) => (
+                {materials.map((m) => (
                   <div key={m.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <span className="text-lg">{m.type === 'PDF' ? '📄' : '📊'}</span>
                     <div className="flex-1 min-w-0">
@@ -172,12 +173,11 @@ export default function AdminContent() {
   const [editItem, setEditItem] = useState<any>(null)
   const [formData, setFormData] = useState(emptyForm)
   const [error, setError] = useState('')
-  const [materialsLessonId, setMaterialsLessonId] = useState<string | null>(null)
+  const [materialsModule, setMaterialsModule] = useState<{ id: string; title: string } | null>(null)
 
   const [filterCategory, setFilterCategory] = useState('')
   const [filterModule, setFilterModule] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterFiles, setFilterFiles] = useState('')
   const [sortTitle, setSortTitle] = useState<'' | 'asc' | 'desc'>('')
   const [sortLessons, setSortLessons] = useState<'' | 'asc' | 'desc'>('')
   const [sortOrder, setSortOrder] = useState<'' | 'asc' | 'desc'>('asc')
@@ -202,7 +202,7 @@ export default function AdminContent() {
   }
 
   useEffect(() => {
-    setFilterCategory(''); setFilterModule(''); setFilterStatus(''); setFilterFiles('')
+    setFilterCategory(''); setFilterModule(''); setFilterStatus('')
     setSortTitle(''); setSortLessons(''); setSortOrder('asc'); setSearchTitle('')
     load()
   }, [tab])
@@ -214,10 +214,6 @@ export default function AdminContent() {
     if (filterModule && tab === 'lessons') items = items.filter(i => i.moduleId === filterModule)
     if (filterStatus === 'published') items = items.filter(i => i.published)
     if (filterStatus === 'draft') items = items.filter(i => !i.published)
-    if (filterFiles === 'video') items = items.filter(i => i.videoUrl)
-    if (filterFiles === 'pdf') items = items.filter(i => i.pdfUrl)
-    if (filterFiles === 'both') items = items.filter(i => i.videoUrl && i.pdfUrl)
-    if (filterFiles === 'none') items = items.filter(i => !i.videoUrl && !i.pdfUrl)
     items = [...items].sort((a, b) => {
       if (sortTitle) { const r = a.title.toLowerCase().localeCompare(b.title.toLowerCase()); return sortTitle === 'asc' ? r : -r }
       if (sortLessons) { const r = (a._count?.lessons ?? 0) - (b._count?.lessons ?? 0); return sortLessons === 'asc' ? r : -r }
@@ -225,19 +221,19 @@ export default function AdminContent() {
       return 0
     })
     return items
-  }, [tab, categories, modules, lessons, searchTitle, filterCategory, filterModule, filterStatus, filterFiles, sortTitle, sortLessons, sortOrder])
+  }, [tab, categories, modules, lessons, searchTitle, filterCategory, filterModule, filterStatus, sortTitle, sortLessons, sortOrder])
 
   const resetFilters = () => {
-    setFilterCategory(''); setFilterModule(''); setFilterStatus(''); setFilterFiles('')
+    setFilterCategory(''); setFilterModule(''); setFilterStatus('')
     setSortTitle(''); setSortLessons(''); setSortOrder('asc'); setSearchTitle('')
   }
 
-  const hasActiveFilters = filterCategory || filterModule || filterStatus || filterFiles || sortTitle || sortLessons || searchTitle
+  const hasActiveFilters = filterCategory || filterModule || filterStatus || sortTitle || sortLessons || searchTitle
 
   const openAdd = () => { setEditItem(null); setFormData(emptyForm); setError(''); setShowForm(true) }
   const openEdit = (item: any) => {
     setEditItem(item)
-    setFormData({ title: item.title || '', slug: item.slug || '', description: item.description || '', order: item.order || 0, published: item.published || false, categoryId: item.categoryId || '', moduleId: item.moduleId || '', videoUrl: item.videoUrl || '', pdfUrl: item.pdfUrl || '', externalUrl: item.externalUrl || '', minWatchPercentForTest: item.minWatchPercentForTest || 0 })
+    setFormData({ title: item.title || '', slug: item.slug || '', description: item.description || '', order: item.order || 0, published: item.published || false, categoryId: item.categoryId || '', moduleId: item.moduleId || '', videoUrl: item.videoUrl || '', externalUrl: item.externalUrl || '', minWatchPercentForTest: item.minWatchPercentForTest || 0 })
     setError(''); setShowForm(true)
   }
 
@@ -246,7 +242,7 @@ export default function AdminContent() {
     const method = editItem ? 'PUT' : 'POST'
     const url = editItem ? `/api/admin/content?resource=${tab}&id=${editItem.id}` : `/api/admin/content?resource=${tab}`
     let body: any = { ...formData }
-    if (tab === 'lessons') body = { title: formData.title, description: formData.description, moduleId: formData.moduleId, videoUrl: formData.videoUrl || null, pdfUrl: formData.pdfUrl || null, externalUrl: formData.externalUrl || null, order: formData.order, published: formData.published, minWatchPercentForTest: formData.minWatchPercentForTest }
+    if (tab === 'lessons') body = { title: formData.title, description: formData.description, moduleId: formData.moduleId, videoUrl: formData.videoUrl || null, externalUrl: formData.externalUrl || null, order: formData.order, published: formData.published, minWatchPercentForTest: formData.minWatchPercentForTest }
     const r = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const d = await r.json()
     if (!r.ok) { setError(d.error || 'Eroare la salvare'); return }
@@ -278,8 +274,12 @@ export default function AdminContent() {
 
   return (
     <div className="space-y-6">
-      {materialsLessonId && (
-        <MaterialsManager lessonId={materialsLessonId} onClose={() => setMaterialsLessonId(null)} />
+      {materialsModule && (
+        <MaterialsManager
+          moduleId={materialsModule.id}
+          moduleTitle={materialsModule.title}
+          onClose={() => setMaterialsModule(null)}
+        />
       )}
 
       <div className="flex items-center justify-between">
@@ -348,19 +348,6 @@ export default function AdminContent() {
                     </ColumnDropdown>
                   </th>
                 )}
-                {tab === 'lessons' && (
-                  <th className="text-left px-4 py-3">
-                    <ColumnDropdown label="Fișiere">
-                      <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
-                      {[['', 'Toate'], ['video', '🎬 Are video'], ['pdf', '📄 Are PDF'], ['both', 'Are ambele'], ['none', 'Fără fișiere']].map(([v, label]) => (
-                        <button key={v} onClick={() => setFilterFiles(v)}
-                          className={`w-full text-left px-2 py-1.5 rounded-lg text-sm hover:bg-gray-50 ${filterFiles === v ? 'text-aep-600 font-medium bg-aep-50' : 'text-gray-700'}`}>
-                          {label}
-                        </button>
-                      ))}
-                    </ColumnDropdown>
-                  </th>
-                )}
                 <th className="text-left px-4 py-3">
                   <ColumnDropdown label="Status">
                     <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
@@ -402,11 +389,9 @@ export default function AdminContent() {
                     {item.description && <div className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{item.description}</div>}
                   </td>
                   {tab === 'modules' && <td className="px-4 py-3 text-gray-500 text-xs">{item.category?.title || '—'}</td>}
-                  {tab === 'lessons' && <td className="px-4 py-3 text-gray-500 text-xs">{item.module?.title ? `${item.module.title}` : '—'}</td>}
                   {tab === 'lessons' && (
-                    <td className="px-4 py-3 text-xs space-y-0.5">
-                      {item.videoUrl ? <div className="text-blue-600">🎬 Video</div> : <div className="text-gray-300">—</div>}
-                      {item.pdfUrl ? <div className="text-red-600">📄 PDF</div> : null}
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {item.module?.title || '—'}
                     </td>
                   )}
                   <td className="px-4 py-3">
@@ -422,8 +407,11 @@ export default function AdminContent() {
                   {tab !== 'categories' && <td className="px-4 py-3 text-gray-400 text-xs">{item.order ?? 0}</td>}
                   <td className="px-4 py-3 text-right space-x-2">
                     <button onClick={() => openEdit(item)} className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50">Modifică</button>
-                    {tab === 'lessons' && (
-                      <button onClick={() => setMaterialsLessonId(item.id)} className="text-xs px-2 py-1 rounded border border-purple-200 text-purple-600 hover:bg-purple-50">Materiale</button>
+                    {tab === 'modules' && (
+                      <button onClick={() => setMaterialsModule({ id: item.id, title: item.title })}
+                        className="text-xs px-2 py-1 rounded border border-purple-200 text-purple-600 hover:bg-purple-50">
+                        Materiale
+                      </button>
                     )}
                     <button onClick={() => togglePublished(item.id, item.published, tab)} className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-100">{item.published ? 'Ascunde' : 'Publică'}</button>
                     <button onClick={() => deleteItem(item.id, tab)} className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">Șterge</button>
@@ -439,7 +427,7 @@ export default function AdminContent() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">
-              {editItem ? 'Modifică' : 'Adaugă'} {tab === 'categories' ? 'categorie' : tab === 'modules' ? 'modul' : 'lecție'}
+              {editItem ? 'Modifică' : 'Adaugă'} {tab === 'categories' ? 'categorie' : tab === 'modules' ? 'modul' : 'lecție video'}
             </h2>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
@@ -474,7 +462,7 @@ export default function AdminContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">🎬 URL Video</label>
+                    <label className="block text-xs text-gray-600 mb-1">🎬 URL Video *</label>
                     <input type="url" placeholder="https://www.youtube.com/embed/..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                       value={formData.videoUrl} onChange={e => setFormData(p => ({ ...p, videoUrl: e.target.value }))} />
                     <p className="text-xs text-gray-400 mt-1">YouTube: youtube.com/embed/ID_VIDEO</p>
@@ -490,7 +478,7 @@ export default function AdminContent() {
                       value={formData.minWatchPercentForTest} onChange={e => setFormData(p => ({ ...p, minWatchPercentForTest: parseInt(e.target.value) || 0 }))} />
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
-                    📎 Materialele PDF/PPT se adaugă după salvare, din butonul <strong>Materiale</strong> din lista de lecții.
+                    📎 Materialele PDF/PPT se adaugă din tab-ul <strong>Module → Materiale</strong>
                   </div>
                 </>
               )}
