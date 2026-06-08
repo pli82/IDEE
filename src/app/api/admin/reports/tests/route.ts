@@ -14,22 +14,21 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to') || new Date().toISOString().slice(0, 10)
 
   try {
-    const attempts = await prisma.testAttempt.findMany({
-      where: {
-        startedAt: { gte: new Date(from), lte: new Date(to + 'T23:59:59') },
-        submittedAt: { not: null },
-      },
-      include: {
-        user: {
-          include: {
-            profile: { select: { nume: true, prenume: true, judetCode: true } },
-          },
-        },
-        test: { select: { id: true, title: true, passingScore: true } },
-        answers: true,
-      },
-      orderBy: [{ test: { id: 'asc' } }, { startedAt: 'desc' }],
-    })
+    const attempts = await prisma.$queryRaw`
+      SELECT 
+        ta.id, ta.score, ta."maxScore", ta.passed, ta."startedAt", ta."submittedAt",
+        u.email,
+        up.nume, up.prenume, up."judetCode",
+        t.title as test_title, t."passingScore"
+      FROM test_attempts ta
+      JOIN users u ON ta."userId" = u.id
+      LEFT JOIN user_profiles up ON u.id = up."userId"
+      JOIN tests t ON ta."testId" = t.id
+      WHERE ta."startedAt" >= ${new Date(from)}
+        AND ta."startedAt" <= ${new Date(to + 'T23:59:59')}
+        AND ta."submittedAt" IS NOT NULL
+      ORDER BY t.id ASC, ta."startedAt" DESC
+    ` as any[]
 
     if (attempts.length === 0) {
       if (format === 'json') return NextResponse.json({ data: [] })
@@ -45,40 +44,43 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Obține textul întrebărilor separat
-    const allAnsweredQuestionIds = [...new Set(
-      (attempts as any[]).flatMap(a => a.answers.map((ans: any) => ans.questionId))
-    )]
+    // Obține răspunsurile separat
+    const attemptIds = attempts.map((a: any) => a.id)
+    const answers = await prisma.$queryRaw`
+      SELECT aa."attemptId", aa."questionId", aa."isCorrect", aa."questionText"
+      FROM attempt_answers aa
+      WHERE aa."attemptId" = ANY(${attemptIds}::text[])
+    ` as any[]
 
-    // Fix: verificare array gol înainte de query
-    const existingQuestions = allAnsweredQuestionIds.length > 0
+    // Grupează răspunsurile pe attempt
+    const answersByAttempt: Record<string, any[]> = {}
+    for (const ans of answers) {
+      if (!answersByAttempt[ans.attemptId]) answersByAttempt[ans.attemptId] = []
+      answersByAttempt[ans.attemptId].push(ans)
+    }
+
+    // Obține întrebările existente
+    const allQuestionIds = [...new Set(answers.map((a: any) => a.questionId))]
+    const existingQuestions = allQuestionIds.length > 0
       ? await prisma.question.findMany({
-          where: { id: { in: allAnsweredQuestionIds } },
+          where: { id: { in: allQuestionIds } },
           select: { id: true, text: true, order: true },
         })
       : []
-
     const questionLookup = new Map(existingQuestions.map(q => [q.id, q]))
 
+    // Construiește mapa de întrebări
     const questionMap = new Map<string, { text: string; order: number; deleted: boolean }>()
-
-    for (const a of attempts as any[]) {
-      for (const ans of a.answers) {
-        if (!questionMap.has(ans.questionId)) {
-          const q = questionLookup.get(ans.questionId)
-          if (q) {
-            questionMap.set(ans.questionId, {
-              text: q.text,
-              order: q.order ?? 0,
-              deleted: false,
-            })
-          } else {
-            questionMap.set(ans.questionId, {
-              text: ans.questionText || `[Întrebare ștearsă - ${ans.questionId.slice(0, 8)}]`,
-              order: 9999,
-              deleted: true,
-            })
-          }
+    for (const ans of answers) {
+      if (!questionMap.has(ans.questionId)) {
+        const q = questionLookup.get(ans.questionId)
+        if (q) {
+          questionMap.set(ans.questionId, { text: q.text, order: q.order ?? 0, deleted: false })
+        } else {
+          questionMap.set(ans.questionId, {
+            text: ans.questionText || `[Întrebare ștearsă - ${ans.questionId.slice(0, 8)}]`,
+            order: 9999, deleted: true,
+          })
         }
       }
     }
@@ -90,82 +92,61 @@ export async function GET(req: NextRequest) {
       })
 
     const rows: any[] = []
-    for (const a of attempts as any[]) {
-      const answerMap: Record<string, boolean | null> = {}
-      for (const ans of a.answers) {
+    for (const a of attempts) {
+      const attemptAnswers = answersByAttempt[a.id] || []
+      const answerMap: Record<string, boolean> = {}
+      for (const ans of attemptAnswers) {
         answerMap[ans.questionId] = ans.isCorrect
       }
 
       const row: any = {
-        'Nume': (a.user as any).profile?.nume || '—',
-        'Prenume': (a.user as any).profile?.prenume || '—',
-        'Email': (a.user as any).email,
-        'Județ': (a.user as any).profile?.judetCode || '—',
-        'Test': (a.test as any).title,
+        'Nume': a.nume || '—',
+        'Prenume': a.prenume || '—',
+        'Email': a.email,
+        'Județ': a.judetCode || '—',
+        'Test': a.test_title,
         'Scor': `${a.score}/${a.maxScore}`,
         'Promovat': a.passed ? 'DA' : 'NU',
-        'Data': a.submittedAt?.toISOString().split('T')[0] || '—',
+        'Data': a.submittedAt ? new Date(a.submittedAt).toISOString().split('T')[0] : '—',
       }
 
       for (const [qId, qInfo] of sortedQuestions) {
         const colName = qInfo.deleted
           ? `❌ ${qInfo.text}`
-          : qInfo.text.length > 60
-            ? qInfo.text.slice(0, 60) + '...'
-            : qInfo.text
-
-        if (qId in answerMap) {
-          row[colName] = answerMap[qId] ? 'CORECT' : 'GREȘIT'
-        } else {
-          row[colName] = '—'
-        }
+          : qInfo.text.length > 60 ? qInfo.text.slice(0, 60) + '...' : qInfo.text
+        row[colName] = qId in answerMap ? (answerMap[qId] ? 'CORECT' : 'GREȘIT') : '—'
       }
 
       rows.push(row)
     }
 
-    if (format === 'json') {
-      return NextResponse.json({ data: rows })
-    }
+    if (format === 'json') return NextResponse.json({ data: rows })
 
     if (format === 'csv') {
       const headers = Object.keys(rows[0]).join(',')
-      const csvRows = rows.map(r =>
-        Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
-      )
+      const csvRows = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       const csv = '\uFEFF' + [headers, ...csvRows].join('\n')
       return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="rezultate_teste.csv"',
-        },
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="rezultate_teste.csv"' }
       })
     }
 
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Rezultate Teste')
-
     const columnKeys = Object.keys(rows[0])
     const fixedCols = ['Nume', 'Prenume', 'Email', 'Județ', 'Test', 'Scor', 'Promovat', 'Data']
 
-    sheet.columns = columnKeys.map(key => ({
-      header: key,
-      key,
-      width: fixedCols.includes(key) ? 18 : Math.min(key.length, 40),
-    }))
-
+    sheet.columns = columnKeys.map(key => ({ header: key, key, width: fixedCols.includes(key) ? 18 : Math.min(key.length, 40) }))
     const headerRow = sheet.getRow(1)
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
     columnKeys.forEach((key, i) => {
-      const cell = headerRow.getCell(i + 1)
-      const isDeleted = key.startsWith('❌')
-      cell.fill = {
+      headerRow.getCell(i + 1).fill = {
         type: 'pattern', pattern: 'solid',
-        fgColor: { argb: isDeleted ? 'FF6c757d' : 'FF1a4480' },
+        fgColor: { argb: key.startsWith('❌') ? 'FF6c757d' : 'FF1a4480' },
       }
     })
 
-    rows.forEach((row, i) => {
+    rows.forEach((row) => {
       const r = sheet.addRow(row)
       const promovatIdx = columnKeys.indexOf('Promovat') + 1
       if (promovatIdx > 0) {
@@ -177,11 +158,8 @@ export async function GET(req: NextRequest) {
       columnKeys.forEach((key, colIdx) => {
         if (!fixedCols.includes(key)) {
           const val = row[key]
-          if (val === 'CORECT') {
-            r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFd4edda' } }
-          } else if (val === 'GREȘIT') {
-            r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf8d7da' } }
-          }
+          if (val === 'CORECT') r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFd4edda' } }
+          else if (val === 'GREȘIT') r.getCell(colIdx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf8d7da' } }
         }
       })
     })
