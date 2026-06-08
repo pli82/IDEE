@@ -404,7 +404,7 @@ export default function AdminContent() {
                   </td>
                   {tab !== 'lessons' && (
                     <td className="px-4 py-3 text-gray-500">
-                      {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții`}
+                      {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții · ${item._count?.materials || 0} materiale`}
                     </td>
                   )}
                   {tab !== 'categories' && <td className="px-4 py-3 text-gray-400 text-xs">{item.order ?? 0}</td>}
