@@ -34,6 +34,21 @@ export async function GET(req: NextRequest) {
               where: { userId: session.id },
               select: { status: true, watchedPercent: true },
             },
+            tests: {
+              where: { published: true },
+              select: {
+                id: true,
+                title: true,
+                questionsPerAttempt: true,
+                passingScore: true,
+                attempts: {
+                  where: { userId: session.id },
+                  orderBy: { submittedAt: 'desc' },
+                  take: 1,
+                  select: { passed: true, score: true, maxScore: true, submittedAt: true },
+                },
+              },
+            },
           },
         },
         materials: {
@@ -42,21 +57,6 @@ export async function GET(req: NextRequest) {
             progress: {
               where: { userId: session.id },
               select: { id: true, viewedAt: true },
-            },
-          },
-        },
-        tests: {
-          where: { published: true },
-          select: {
-            id: true,
-            title: true,
-            questionsPerAttempt: true,
-            passingScore: true,
-            attempts: {
-              where: { userId: session.id },
-              orderBy: { submittedAt: 'desc' },
-              take: 1,
-              select: { passed: true, score: true, maxScore: true, submittedAt: true },
             },
           },
         },
@@ -78,8 +78,10 @@ export async function GET(req: NextRequest) {
       const viewedMaterials = mod.materials.filter(m => m.progress.length > 0).length
       const materialsComplete = totalMaterials > 0 && viewedMaterials === totalMaterials
 
-      const hasTests = mod.tests.length > 0
-      const testPassed = hasTests && mod.tests.some(t => t.attempts[0]?.passed)
+      // Adună toate testele din lecțiile modulului
+      const allTests = mod.lessons.flatMap(l => l.tests || [])
+      const hasTests = allTests.length > 0
+      const testPassed = hasTests && allTests.some(t => t.attempts[0]?.passed)
 
       let components = 0
       let completedComponents = 0
@@ -103,6 +105,7 @@ export async function GET(req: NextRequest) {
 
       return {
         ...mod,
+        tests: allTests,
         stats: {
           totalVideos,
           completedVideos,
