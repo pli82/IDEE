@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         where: categoryId ? { categoryId } : undefined,
         include: {
           category: { select: { title: true } },
-          _count: { select: { lessons: true } },
+          _count: { select: { lessons: true, materials: true } },
         },
         orderBy: { order: 'asc' },
       })
