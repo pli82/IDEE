@@ -27,18 +27,19 @@ export async function GET() {
     const countyNames = await prisma.county.findMany({ select: { code: true, name: true } })
     const countyMap = Object.fromEntries(countyNames.map(c => [c.code, c.name]))
 
-    // Rata de finalizare = media procentelor individuale per user
-    // Pentru fiecare user: lectii_completate / total_lectii_publicate * 100
-    // Apoi media acestor procente peste toti userii activi
-    const completedPerUser = await prisma.progress.groupBy({
-      by: ['userId'],
-      where: { status: 'COMPLETED' },
-      _count: { lessonId: true },
-    })
+    // Rata de finalizare = media procentelor individuale per user activ
+    // COUNT(DISTINCT "lessonId") per user pentru a evita duplicate din tabela progress
+    // Userii fara nicio lectie completata contribuie cu 0% la medie
+    const completedPerUser = await prisma.$queryRaw<{ userId: string; distinctCount: bigint }[]>`
+      SELECT "userId", COUNT(DISTINCT "lessonId") as "distinctCount"
+      FROM progress
+      WHERE status = 'COMPLETED'
+      GROUP BY "userId"
+    `
     const completionRate = activeUsers > 0 && totalLessons > 0
       ? Math.round(
           completedPerUser.reduce((sum, u) => {
-            const userPct = Math.min(u._count.lessonId / totalLessons * 100, 100)
+            const userPct = Math.min(Number(u.distinctCount) / totalLessons * 100, 100)
             return sum + userPct
           }, 0) / activeUsers
         )
