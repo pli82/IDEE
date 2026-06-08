@@ -2,14 +2,11 @@
 import { getSession, isAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ok, forbidden, serverError } from '@/lib/api'
-
 export async function GET() {
   const session = await getSession()
   if (!session || !isAdmin(session)) return forbidden()
-
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000)
-
     const [
       totalUsers, activeUsers, pendingVerification,
       recentRegistrations, totalModules, totalLessons,
@@ -27,9 +24,25 @@ export async function GET() {
       prisma.userProfile.groupBy({ by: ['judetCode'], _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 15 }),
       prisma.userProfile.groupBy({ by: ['calitate'], _count: { id: true }, orderBy: { _count: { id: 'desc' } } }),
     ])
-
     const countyNames = await prisma.county.findMany({ select: { code: true, name: true } })
     const countyMap = Object.fromEntries(countyNames.map(c => [c.code, c.name]))
+
+    // Rata de finalizare = media procentelor individuale per user
+    // Pentru fiecare user: lectii_completate / total_lectii_publicate * 100
+    // Apoi media acestor procente peste toti userii activi
+    const completedPerUser = await prisma.progress.groupBy({
+      by: ['userId'],
+      where: { status: 'COMPLETED' },
+      _count: { lessonId: true },
+    })
+    const completionRate = activeUsers > 0 && totalLessons > 0
+      ? Math.round(
+          completedPerUser.reduce((sum, u) => {
+            const userPct = Math.min(u._count.lessonId / totalLessons * 100, 100)
+            return sum + userPct
+          }, 0) / activeUsers
+        )
+      : 0
 
     return ok({
       totalUsers,
@@ -38,9 +51,7 @@ export async function GET() {
       recentRegistrations,
       totalModules,
       totalLessons,
-      completionRate: totalLessons > 0
-        ? Math.round((await prisma.progress.count({ where: { status: 'COMPLETED' } })) / (totalLessons || 1) * 100)
-        : 0,
+      completionRate,
       testPassRate: totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0,
       usersByCounty: usersByCounty.map(r => ({
         countyName: countyMap[r.judetCode || ''] || r.judetCode || 'Nespecificat',
