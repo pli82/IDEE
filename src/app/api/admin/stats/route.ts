@@ -8,14 +8,14 @@ export async function GET() {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000)
     const [
-      totalUsers, activeUsers, pendingVerification,
+      totalUsers, activeUsers, incompleteProfile,
       recentRegistrations, totalModules, totalLessons,
       totalAttempts, passedAttempts,
       usersByCounty, usersByCalitate,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { status: 'ACTIVE' } }),
-      prisma.user.count({ where: { emailVerified: false } }),
+      prisma.userProfile.count({ where: { profileComplete: false } }),
       prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
       prisma.module.count({ where: { published: true } }),
       prisma.lesson.count({ where: { published: true } }),
@@ -51,7 +51,7 @@ export async function GET() {
     return ok({
       totalUsers,
       activeUsers,
-      pendingVerification,
+      incompleteProfile,
       recentRegistrations,
       totalModules,
       totalLessons,
