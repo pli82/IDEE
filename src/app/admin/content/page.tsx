@@ -35,7 +35,7 @@ function ColumnDropdown({ label, children }: { label: string; children: React.Re
   )
 }
 
-function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string; moduleTitle: string; onClose: () => void }) {
+function MaterialsManager({ moduleId, moduleTitle, onClose, onMaterialAdded }: { moduleId: string; moduleTitle: string; onClose: () => void; onMaterialAdded?: () => void }) {
   const [materials, setMaterials] = useState<LessonMaterial[]>([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
@@ -86,6 +86,7 @@ function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string
     if (r.ok) {
       setNewTitle(''); setNewUrl(''); setNewType('PDF')
       loadMaterials()
+      onMaterialAdded?.()
     }
   }
 
@@ -93,6 +94,7 @@ function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string
     if (!confirm('Ștergi acest material?')) return
     await apiFetch(`/api/courses/modules/${moduleId}/materials?id=${id}`, { method: 'DELETE' })
     loadMaterials()
+    onMaterialAdded?.()
   }
 
   return (
@@ -281,6 +283,7 @@ export default function AdminContent() {
           moduleId={materialsModule.id}
           moduleTitle={materialsModule.title}
           onClose={() => setMaterialsModule(null)}
+          onMaterialAdded={load}
         />
       )}
 
@@ -401,7 +404,7 @@ export default function AdminContent() {
                   </td>
                   {tab !== 'lessons' && (
                     <td className="px-4 py-3 text-gray-500">
-                      {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții · ${item._count?.materials || 0} materiale`}
+                      {item._count?.modules !== undefined ? `${item._count.modules} module` : `${item._count?.lessons || 0} lecții`}
                     </td>
                   )}
                   {tab !== 'categories' && <td className="px-4 py-3 text-gray-400 text-xs">{item.order ?? 0}</td>}
