@@ -22,7 +22,7 @@ export default function AdminUsers() {
     const params = new URLSearchParams({ page: String(page), limit: '20' })
     if (search) params.set('search', search)
     if (statusFilter) params.set('status', statusFilter)
-    const r = await fetch(`/api/admin/users?${params}`)
+    const r = await fetch(`/api/admin/users?${params}`, { credentials: 'include' })
     const d = await r.json()
     setUsers(d.data || [])
     setTotal(d.total || 0)
@@ -40,11 +40,19 @@ export default function AdminUsers() {
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/users?id=${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
     loadUsers()
     setSelected(null)
+  }
+
+  const deleteUser = async (id: string, email: string) => {
+    if (!confirm(`Ștergi definitiv contul ${email}?\n\nAceastă acțiune este ireversibilă și va șterge toate datele asociate.`)) return
+    await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE', credentials: 'include' })
+    setSelected(null)
+    loadUsers()
   }
 
   const statusLabel: Record<string, string> = {
@@ -70,7 +78,6 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Filtre */}
       <form onSubmit={handleSearch} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-wrap gap-3 items-end">
         <input type="text" placeholder="Caută email, nume..." className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-48"
           value={search} onChange={e => setSearch(e.target.value)} />
@@ -124,16 +131,18 @@ export default function AdminUsers() {
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {new Date(u.createdAt).toLocaleDateString('ro')}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-1">
                     <button onClick={() => setSelected(u)} className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-100">
                       Detalii
+                    </button>
+                    <button onClick={() => deleteUser(u.id, u.email)} className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">
+                      Șterge
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {/* Paginare */}
           <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
             <span>Pagina {page} din {Math.ceil(total / 20)}</span>
             <div className="flex gap-2">
@@ -150,7 +159,6 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* Modal detalii utilizator */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
@@ -176,6 +184,13 @@ export default function AdminUsers() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mb-2">Acțiuni ireversibile:</p>
+              <button onClick={() => deleteUser(selected.id, selected.email)}
+                className="px-3 py-1.5 text-xs rounded-lg border border-red-300 text-red-600 hover:bg-red-50 w-full">
+                🗑 Șterge definitiv contul
+              </button>
             </div>
             <button onClick={() => setSelected(null)} className="mt-4 w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
               Închide
