@@ -6,7 +6,7 @@ import Link from 'next/link';
 interface Stats {
   totalUsers: number;
   activeUsers: number;
-  pendingVerification: number;
+  incompleteProfile: number;
   totalLessons: number;
   totalModules: number;
   completionRate: number;
@@ -65,8 +65,8 @@ export default function AdminDashboard() {
             <div className="text-sm text-gray-600 mt-1">Conturi active</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-orange-500">{stats.pendingVerification}</div>
-            <div className="text-sm text-gray-600 mt-1">Neconfirmate</div>
+            <div className="text-3xl font-bold text-orange-500">{stats.incompleteProfile}</div>
+            <div className="text-sm text-gray-600 mt-1">Profil incomplet</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="text-3xl font-bold text-purple-600">{stats.completionRate}%</div>
