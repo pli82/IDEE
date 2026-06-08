@@ -27,7 +27,7 @@ function ColumnDropdown({ label, children }: { label: string; children: React.Re
         </svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[200px] p-2">
+        <div className="absolute left-0 top-full mt-1 z-[100] bg-white border border-gray-200 rounded-xl shadow-lg min-w-[200px] max-h-72 overflow-y-auto p-2">
           {children}
         </div>
       )}
@@ -307,7 +307,7 @@ export default function AdminContent() {
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-aep-600" /></div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
           {hasActiveFilters && (
             <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
               <span className="text-xs text-blue-600">{filteredItems.length} rezultate filtrate</span>
