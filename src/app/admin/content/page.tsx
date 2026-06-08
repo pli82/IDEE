@@ -99,7 +99,6 @@ function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
         <p className="text-xs text-gray-500 mb-4">Modul: <strong>{moduleTitle}</strong></p>
-
         {loading ? (
           <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-aep-600" /></div>
         ) : (
@@ -120,7 +119,6 @@ function MaterialsManager({ moduleId, moduleTitle, onClose }: { moduleId: string
                 ))}
               </div>
             )}
-
             <div className="border-t border-gray-100 pt-4 space-y-3">
               <p className="text-sm font-medium text-gray-700">Adaugă material nou</p>
               <div>
@@ -208,7 +206,7 @@ export default function AdminContent() {
   }, [tab])
 
   const filteredItems = useMemo(() => {
-    let items: any[] = tab === 'categories' ? categories : tab === 'modules' ? modules : lessons
+    let items: any[] = (tab === 'categories' ? categories : tab === 'modules' ? modules : lessons) ?? []
     if (searchTitle) items = items.filter(i => i.title.toLowerCase().includes(searchTitle.toLowerCase()))
     if (filterCategory && tab === 'modules') items = items.filter(i => i.categoryId === filterCategory)
     if (filterModule && tab === 'lessons') items = items.filter(i => i.moduleId === filterModule)
@@ -326,7 +324,7 @@ export default function AdminContent() {
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Categorie">
                       <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
-                      {[['', 'Toate categoriile'], ...categories.map(c => [c.id, c.title])].map(([v, label]) => (
+                      {[['', 'Toate categoriile'], ...(categories || []).map(c => [c.id, c.title])].map(([v, label]) => (
                         <button key={v} onClick={() => setFilterCategory(v)}
                           className={`w-full text-left px-2 py-1.5 rounded-lg text-sm hover:bg-gray-50 ${filterCategory === v ? 'text-aep-600 font-medium bg-aep-50' : 'text-gray-700'}`}>
                           {label}
@@ -339,7 +337,7 @@ export default function AdminContent() {
                   <th className="text-left px-4 py-3">
                     <ColumnDropdown label="Modul">
                       <p className="text-xs text-gray-400 px-2 pt-1 pb-1">Filtrează</p>
-                      {[['', 'Toate modulele'], ...modules.map(m => [m.id, `${m.title} — ${m.category?.title}`])].map(([v, label]) => (
+                      {[['', 'Toate modulele'], ...(modules || []).map(m => [m.id, `${m.title} — ${m.category?.title || ''}`])].map(([v, label]) => (
                         <button key={v} onClick={() => setFilterModule(v)}
                           className={`w-full text-left px-2 py-1.5 rounded-lg text-sm hover:bg-gray-50 ${filterModule === v ? 'text-aep-600 font-medium bg-aep-50' : 'text-gray-700'}`}>
                           {label}
@@ -390,9 +388,7 @@ export default function AdminContent() {
                   </td>
                   {tab === 'modules' && <td className="px-4 py-3 text-gray-500 text-xs">{item.category?.title || '—'}</td>}
                   {tab === 'lessons' && (
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {item.module?.title || '—'}
-                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{item.module?.title || '—'}</td>
                   )}
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
@@ -448,7 +444,7 @@ export default function AdminContent() {
                   <label className="block text-xs text-gray-600 mb-1">Categorie *</label>
                   <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={formData.categoryId} onChange={e => setFormData(p => ({ ...p, categoryId: e.target.value }))}>
                     <option value="">Selectează categoria</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    {(categories || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
                 </div>
               )}
@@ -458,7 +454,7 @@ export default function AdminContent() {
                     <label className="block text-xs text-gray-600 mb-1">Modul *</label>
                     <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={formData.moduleId} onChange={e => setFormData(p => ({ ...p, moduleId: e.target.value }))}>
                       <option value="">Selectează modulul</option>
-                      {modules.map(m => <option key={m.id} value={m.id}>{m.title} — {m.category?.title}</option>)}
+                      {(modules || []).map(m => <option key={m.id} value={m.id}>{m.title} — {m.category?.title || ''}</option>)}
                     </select>
                   </div>
                   <div>
