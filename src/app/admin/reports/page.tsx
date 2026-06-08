@@ -39,7 +39,6 @@ export default function AdminReports() {
 
   const loadTable = async () => {
     setTableLoading(true)
-    setTableData([])
     setRawData([])
     try {
       const endpoint = activeTab === 'users' ? 'progress' : 'tests'
