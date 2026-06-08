@@ -15,6 +15,11 @@ interface ModuleProgress {
   category: { id: string; title: string; slug: string }
   stats: ModuleStats
 }
+interface CategoryProgress {
+  id: string; title: string; slug: string
+  modules: ModuleProgress[]
+  totalModules: number; completedModules: number; percent: number
+}
 interface TestAttempt {
   id: string; test: { title: string }; score: number; maxScore: number; passed: boolean; submittedAt: string
 }
@@ -22,7 +27,8 @@ interface TestAttempt {
 export default function ProgressPage() {
   const [modules, setModules] = useState<ModuleProgress[]>([])
   const [attempts, setAttempts] = useState<TestAttempt[]>([])
-  const [activeTab, setActiveTab] = useState<'modules' | 'tests'>('modules')
+  const [activeTab, setActiveTab] = useState<'categories' | 'tests'>('categories')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,12 +36,36 @@ export default function ProgressPage() {
       fetch('/api/progress/modules', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/tests', { credentials: 'include' }).then(r => r.json()),
     ]).then(([modRes, testRes]) => {
-      setModules(modRes.data?.modules || [])
+      const mods = modRes.data?.modules || []
+      setModules(mods)
       setAttempts(testRes.data?.attempts || [])
+      const cats = groupByCategory(mods)
+      const initial: Record<string, boolean> = {}
+      cats.forEach((c, i) => { initial[c.id] = i === 0 })
+      setExpanded(initial)
     }).finally(() => setLoading(false))
   }, [])
 
-  const startedModules = modules.filter(m => m.stats.completedComponents > 0 || m.stats.viewedMaterials > 0)
+  const groupByCategory = (mods: ModuleProgress[]): CategoryProgress[] => {
+    const map: Record<string, CategoryProgress> = {}
+    mods.forEach(mod => {
+      const cat = mod.category
+      if (!map[cat.id]) {
+        map[cat.id] = { id: cat.id, title: cat.title, slug: cat.slug, modules: [], totalModules: 0, completedModules: 0, percent: 0 }
+      }
+      map[cat.id].modules.push(mod)
+    })
+    return Object.values(map).map(cat => {
+      const total = cat.modules.filter(m => m.stats.components > 0).length
+      const completed = cat.modules.filter(m => m.stats.percent === 100).length
+      return { ...cat, totalModules: total, completedModules: completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
+    })
+  }
+
+  const categories = groupByCategory(modules)
+  const startedCategories = categories.filter(c => c.modules.some(m => m.stats.completedComponents > 0 || m.stats.viewedMaterials > 0))
+
+  const toggleCategory = (id: string) => setExpanded(p => ({ ...p, [id]: !p[id] }))
 
   if (loading) return (
     <div className="flex justify-center py-12">
@@ -48,68 +78,98 @@ export default function ProgressPage() {
       <h1 className="text-2xl font-bold text-gray-900">Progresul meu</h1>
 
       <div className="flex gap-2 border-b border-gray-200">
-        {(['modules', 'tests'] as const).map(t => (
+        {(['categories', 'tests'] as const).map(t => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${activeTab === t ? 'border-aep-600 text-aep-600' : 'border-transparent text-gray-500'}`}>
-            {t === 'modules' ? `Module (${startedModules.length})` : `Teste (${attempts.length})`}
+            {t === 'categories' ? `Categorii (${startedCategories.length})` : `Teste (${attempts.length})`}
           </button>
         ))}
       </div>
 
-      {activeTab === 'modules' ? (
-        <div className="space-y-3">
-          {startedModules.length === 0 ? (
+      {activeTab === 'categories' ? (
+        <div className="space-y-4">
+          {startedCategories.length === 0 ? (
             <div className="bg-white rounded-xl p-8 text-center border border-gray-100 text-gray-400">
               Niciun modul accesat încă. <Link href="/dashboard/courses" className="text-aep-600 hover:underline">Accesați materialele</Link>
             </div>
-          ) : startedModules.map(mod => {
-            const { stats } = mod
+          ) : startedCategories.map(cat => {
+            const isOpen = expanded[cat.id] ?? false
             return (
-              <Link
-                key={mod.id}
-                href={`/dashboard/courses/${mod.category.slug}`}
-                className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-aep-200 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900 text-sm">{mod.title}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{mod.category.title}</div>
+              <div key={cat.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <button onClick={() => toggleCategory(cat.id)} className="w-full text-left p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <i className={`ti ${isOpen ? 'ti-chevron-down' : 'ti-chevron-right'} transition-transform`}
+                        aria-hidden="true" style={{ fontSize: '15px', color: '#6b7280', flexShrink: 0 }} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{cat.title}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{cat.completedModules} din {cat.totalModules} module completate</p>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-bold shrink-0 ${cat.percent === 100 ? 'text-green-600' : 'text-aep-700'}`}>
+                      {cat.percent}%
+                    </span>
                   </div>
-                  <span className={`text-sm font-bold shrink-0 ${stats.percent === 100 ? 'text-green-600' : 'text-aep-700'}`}>
-                    {stats.completedComponents}/{stats.components}
-                  </span>
-                </div>
+                  <div className="mt-2 ml-6 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${cat.percent === 100 ? 'bg-green-500' : 'bg-aep-500'}`}
+                      style={{ width: `${cat.percent}%` }} />
+                  </div>
+                </button>
 
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
-                  <div
-                    className={`h-full rounded-full transition-all ${stats.percent === 100 ? 'bg-green-500' : 'bg-aep-500'}`}
-                    style={{ width: `${stats.percent}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4 flex-wrap">
-                  {stats.totalVideos > 0 && (
-                    <span className={`text-xs flex items-center gap-1 ${stats.videoComplete ? 'text-green-600' : 'text-gray-400'}`}>
-                      <i className="ti ti-player-play" aria-hidden="true" style={{ fontSize: '12px' }} />
-                      {stats.completedVideos}/{stats.totalVideos} video
-                      {stats.videoComplete && ' ✓'}
-                    </span>
-                  )}
-                  {stats.totalMaterials > 0 && (
-                    <span className={`text-xs flex items-center gap-1 ${stats.materialsComplete ? 'text-green-600' : 'text-gray-400'}`}>
-                      <i className="ti ti-files" aria-hidden="true" style={{ fontSize: '12px' }} />
-                      {stats.viewedMaterials}/{stats.totalMaterials} materiale
-                      {stats.materialsComplete && ' ✓'}
-                    </span>
-                  )}
-                  {stats.hasTests && (
-                    <span className={`text-xs flex items-center gap-1 ${stats.testPassed ? 'text-green-600' : 'text-gray-400'}`}>
-                      <i className="ti ti-clipboard-check" aria-hidden="true" style={{ fontSize: '12px' }} />
-                      {stats.testPassed ? 'Test promovat ✓' : 'Test nesusținut'}
-                    </span>
-                  )}
-                </div>
-              </Link>
+                {isOpen && (
+                  <div className="border-t border-gray-100 divide-y divide-gray-50">
+                    {cat.modules.map(mod => {
+                      const { stats } = mod
+                      const hasProgress = stats.completedComponents > 0 || stats.viewedMaterials > 0
+                      return (
+                        <Link
+                          key={mod.id}
+                          href={`/dashboard/courses/${cat.slug}`}
+                          className={`flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 transition-colors ${hasProgress ? '' : 'opacity-50'}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{mod.title}</p>
+                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {stats.totalVideos > 0 && (
+                                <span className={`text-xs flex items-center gap-0.5 ${stats.videoComplete ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <i className="ti ti-player-play" aria-hidden="true" style={{ fontSize: '11px' }} />
+                                  {stats.completedVideos}/{stats.totalVideos} video{stats.videoComplete ? ' ✓' : ''}
+                                </span>
+                              )}
+                              {stats.totalMaterials > 0 && (
+                                <span className={`text-xs flex items-center gap-0.5 ${stats.materialsComplete ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <i className="ti ti-files" aria-hidden="true" style={{ fontSize: '11px' }} />
+                                  {stats.viewedMaterials}/{stats.totalMaterials} materiale{stats.materialsComplete ? ' ✓' : ''}
+                                </span>
+                              )}
+                              {stats.hasTests && (
+                                <span className={`text-xs flex items-center gap-0.5 ${stats.testPassed ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <i className="ti ti-clipboard-check" aria-hidden="true" style={{ fontSize: '11px' }} />
+                                  {stats.testPassed ? 'Test promovat ✓' : 'Test nesusținut'}
+                                </span>
+                              )}
+                              {stats.components === 0 && (
+                                <span className="text-xs text-gray-400">Fără conținut</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className={`text-xs font-bold ${stats.percent === 100 ? 'text-green-600' : stats.completedComponents > 0 ? 'text-aep-700' : 'text-gray-400'}`}>
+                              {stats.completedComponents}/{stats.components}
+                            </span>
+                            {stats.components > 0 && (
+                              <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                                <div className={`h-full rounded-full ${stats.percent === 100 ? 'bg-green-500' : 'bg-aep-500'}`}
+                                  style={{ width: `${stats.percent}%` }} />
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
