@@ -38,7 +38,7 @@ export async function GET(
         },
       },
     })
-    return ok({ data: materials })
+    return ok(materials)
   } catch (err) {
     console.error('Module materials GET error:', err)
     return serverError()
@@ -66,7 +66,7 @@ export async function POST(
         order: order || 0,
       },
     })
-    return ok({ data: material })
+    return ok(material)
   } catch (err) {
     console.error('Module materials POST error:', err)
     return serverError()
