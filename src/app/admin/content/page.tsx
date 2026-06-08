@@ -27,7 +27,7 @@ function ColumnDropdown({ label, children }: { label: string; children: React.Re
         </svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-[100] bg-white border border-gray-200 rounded-xl shadow-lg min-w-[200px] max-h-72 overflow-y-auto p-2">
+        <div className="absolute left-0 top-full mt-1 z-[100] bg-white border border-gray-200 rounded-xl shadow-lg min-w-[200px] max-h-72 overflow-y-auto p-2" onClick={e => { if ((e.target as HTMLElement).tagName === 'BUTTON') setOpen(false) }}>
           {children}
         </div>
       )}
